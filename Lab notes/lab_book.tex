@@ -1,0 +1,187 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Lab Book 
+% Original author:
+% Frank Kuster (http://www.ctan.org/tex-archive/macros/latex/contrib/labbook/)
+%
+% Important note:
+% This template requires the labbook.cls file to be in the same directory as the
+% .tex file. The labbook.cls file provides the necessary structure to create the
+% lab book.
+%
+%
+% HOW TO USE THIS TEMPLATE 
+% Each day in the lab consists of three main things:
+%
+% 1. LABDAY: The first thing to put is the \labday{} command with a date in 
+% curly brackets, this will make a new page and put the date in big letters 
+% at the top.
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%----------------------------------------------------------------------------------------
+%	PACKAGES AND OTHER DOCUMENT CONFIGURATIONS
+%----------------------------------------------------------------------------------------
+
+\documentclass[idxtotoc,hyperref,openany]{labbook} % 'openany' here removes the gap page between days, erase it to restore this gap; 'oneside' can also be added to remove the shift that odd pages have to the right for easier reading
+
+\usepackage[ 
+  backref=page,
+  pdfpagelabels=true,
+  plainpages=false,
+  colorlinks=true,
+  bookmarks=true,
+  pdfview=FitB]{hyperref} % Required for the hyperlinks within the PDF
+  
+\usepackage{booktabs} % Required for the top and bottom rules in the table
+\usepackage{float} % Required for specifying the exact location of a figure or table
+\usepackage{graphicx} % Required for including images
+\usepackage[parfill]{parskip}
+
+\newlength{\mylen}
+\setbox1=\hbox{$\bullet$}\setbox2=\hbox{\tiny$\bullet$}
+\setlength{\mylen}{\dimexpr0.5\ht1-0.5\ht2}
+\renewcommand\labelitemi{\raisebox{\mylen}{\tiny$\bullet$}}
+
+\newcommand{\HRule}{\rule{\linewidth}{0.5mm}} % Command to make the lines in the title page
+\setlength\parindent{0pt} % Removes all indentation from paragraphs
+
+%----------------------------------------------------------------------------------------
+%	DEFINITION OF EXPERIMENTS
+%----------------------------------------------------------------------------------------
+
+%\newexperiment{shorthand}{Description of the experiment}
+
+%---------------------------------------------------------------------------------------
+
+\begin{document}
+
+%----------------------------------------------------------------------------------------
+%	TITLE PAGE
+%----------------------------------------------------------------------------------------
+
+\frontmatter % Use Roman numerals for page numbers
+\title{
+\begin{center}
+\HRule \\[0.4cm]
+{\Huge \bfseries Research Journal}\\
+\HRule \\[1.5cm]
+\end{center}
+}
+\author{\Huge Jerome Wynne \\ \\ \LARGE University of Bristol \\[2cm]}
+\date{19th June 2017 - Present}
+\maketitle
+
+\tableofcontents
+
+\mainmatter
+
+%----------------------------------------------------------------------------------------
+%	LAB BOOK CONTENTS
+%----------------------------------------------------------------------------------------
+
+% Blank template to use for new days:
+
+%\labday{Day, Date Month Year}
+
+%\experiment{}
+
+%Text
+
+%-----------------------------------------
+
+%\experiment{}
+
+%Text
+
+%----------------------------------------------------------------------------------------
+
+\labday{Thursday, 1st June 2017}
+\experiment{Summary}
+\begin{itemize}
+	\item Set up this labbook.
+	\item Wrote down what I'd like to achieve during my placement.
+	\item Listed a bunch of classic computer vision papers.
+\end{itemize}
+
+\experiment{Placement objectives}
+During my 8-week placement I would like to:
+\begin{itemize}
+	\item Apply and understand the most useful computer vision algorithms.
+	\item Write either a statistics, machine learning, or computer vision research paper worthy of publication.
+	\item Develop a systematic workflow to problems involving data, and demonstrate this workflow in publicly available scripts or notebooks.
+\end{itemize}
+
+\experiment{Reading a paper critically}
+\begin{itemize}
+\item Motivations for the problem posed
+\item The choices made in finding a solution
+\item The assumptions behind the solution
+\item The validity of those assumptions
+\item Whether assumptions can be removed without invalidating the approach
+\item What was accomplished
+\item Future research directions
+\end{itemize}
+\newpage
+
+\experiment{Structuring your time}
+I think it's realistic to aim for 12 hours of productive work each day. This includes reading, studying, and running my own experiments. To begin with, I think I should spend at least three-quarters of this time learning. Maybe by week four I will shift the ratio.
+
+ I will see how it goes, but I suspect I will prefer to work from the University rather than DNV-GL's offices.
+ 
+ To make this placement a success, I will need to be disciplined about how I use my time. I know that if I get up early and immediately go to work, I can easily crack out four hours without breaking a sweat. After this time I can take at least a couple of hours - go to the gym, read, walk, or - of course - eat. After that I'll get back on that horse for another four or five hours, before taking another short break, then do a few more hours.
+ 
+ Having lots of sleep is important for my mental health and emotional wellbeing, so I should aim to get at least eight hours. If I get up at six, this means that I should go to bed at half-nine. I can work from my flat, University buildings, or the DNV-GL offices. It would be a good idea to mix the places I study up - I know this has helped me keep focused in the past. I need to be careful to provide some time for myself too, so that I can recuperate: I think two hours at the end of the day, eight until ten, will be enough.
+ 
+ \experiment{Figuring out what to write about}
+ \begin{enumerate}
+ \item Narrow down your field of study
+ \item Define what to investigate
+ \item Establish a thesis or an argument
+ \end{enumerate}
+
+I am studying computer vision and statistics. This is because I want to build robust algorithms to understand visual information, which in turns makes it easier to automate difficult or tedious tasks, such as watching CCTV cameras or spotting damage to structures in video footage. I am doing this so that we will know more about how patterns in visual information can be found, and so that we can exploit these patterns to automate economically and socially beneficial tasks. I am also interested in how we can represent visual information to make it easier to work with and to understand.
+
+\experiment{Structuring your work}
+\begin{enumerate}
+\item Find data that poses an unsolved problem, or find a problem that needs data to be solved.
+\item Find the data, or pose the problem.
+\item Review the relevant literature.
+\item Propose a solution, then run experiments and conduct analysis to test that solution.
+\item Write up the results.
+\end{enumerate}
+
+\experiment{How to use this book}
+I should use this book to record what I'm doing, ideas and conversations I have, experiments I run, papers and books to read, things I understand and don't understand - everything related to my research. It only takes a few minutes to put a screenshot in this document - remember this!
+
+As a habit, at the beginning of each day I will write down what I plan to do. At the end of the day I'll review what I've done. I should also review the book each week, to get an idea what I've been up to and where I'm headed.
+
+\newpage
+%-----------------------------------------------
+ % 		PAPERS
+ %---------------------------------------------
+{\hspace{5cm} \Huge\textbf{Papers} \hfill}
+\\
+
+\begin{table}[h!]
+\hspace{-2.5cm}
+\centering
+\renewcommand{\arraystretch}{1.5}
+ \small
+\begin{tabular}{@{}p{6cm} p{4cm} p{1cm} p{3cm} p{1cm}} \toprule
+\textbf{Title}		&	\textbf{Authors}	&	\textbf{Year}		&	\textbf{Topic}		& 	\textbf{Read}\\ \midrule
+Theory of Edge Detection	&	D. Marr, E. Hildreth	&	1980	&	Computer vision	& No \\
+A Computational Approach to Edge Detection & J. Canny & 1986 & Computer vision & No \\
+Determining optical flow	&	B.K.P. Horn, B. Schunk	&	1981	&	Computer vision	&	No \\
+An iterative image registration technique with an application to stereo vision	&	B. Lucas, T. Kanade	& 1981 &	Computer vision	&	No \\
+Snakes: Active contour models	&	M. Kass, A. Witkin, D. Terzpoulos	&	1988 & Computer vision & No \\
+Eigenfaces for recognition & M. Turk, A. Pentland & 1991 & Computer vision & No \\
+Shape and motion from image streams under orthography: a factorization method & C. Tomasi, T. Kanade & 1992 & Computer vision & No \\
+Texture features for browsing and retrieval of image data & B. Manjunath, W. Ma & 1996 & Computer vision & No\\
+Conditional density propagation for visual tracking & M. Isard, A. Blake & 1998 & Computer vision & No \\
+Normalized cuts & J. Shi, J. Malik & 2000 & Computer vision & No \\
+Non-parametric model for background subtraction & A. Elgammal, D. Harwood, L. Davis & 2000 & Computer vision & No\\
+Distinctive image features from scale-invariant keypoints & D. Lowe & 2004 & Computer vision & No
+ \\ \bottomrule
+\end{tabular}
+\end{table}
+\end{document}
