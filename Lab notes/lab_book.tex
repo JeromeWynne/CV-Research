@@ -36,6 +36,9 @@
 \usepackage{float} % Required for specifying the exact location of a figure or table
 \usepackage{graphicx} % Required for including images
 \usepackage[parfill]{parskip}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\graphicspath{{./images/}}
 
 \newlength{\mylen}
 \setbox1=\hbox{$\bullet$}\setbox2=\hbox{\tiny$\bullet$}
@@ -187,7 +190,7 @@ Distinctive image features from scale-invariant keypoints & D. Lowe & 2004 & Com
 
 
 \labday{Monday, 19th June 2017}
-\experiment{Plan}
+\experiment{Summary}
 \begin{itemize}
 \item Arrived at DNV offices @ 10:00.
 \item H \& S induction. Remember to look at the green lights above the doors!
@@ -206,12 +209,90 @@ Distinctive image features from scale-invariant keypoints & D. Lowe & 2004 & Com
 \item Footage from two turbines is available this week. More footage will be available next week.
 \item I can VPN into DNV's network using the laptop that they provided me.
 \item I left the DNV offices after lunch (14:00), then worked on the Design Project briefs until 16:30.
+\item Liz planned to book a meeting with the inspections team to discuss how they look for damage. Possible questions:
+\begin{itemize}
+	\item What does damage look like?
+	\item Over what time periods does it develop?
+	\item What causes the damage?
+	\item What mistakes do you make when looking for damage?
+	\item What type of damage is easiest/most difficult to spot?
+	\item What do you do when you find damage?
+	\item What problems do you think there are with using drones to identify damage?
+\end{itemize}
 \end{itemize}
 
-This afternoon:
+In the afternoon I read the introduction to Canny's paper on edge detection. I learnt that there is a tension between edge detection and localization (the distance between the detected edge and the true edge). Apparently the paper determines the optimal operator for various common edges.
+
+I also read the introduction and first chapter of S.J. Prince's book on computer vision. The introduction outlined the book's structure and the first chapter was a quick review of basic probability theory.
+
 \begin{itemize}
 \item Read Canny paper.
-\item Read the first chapter of S.J. Computer Vision. Make notes and complete the associated exercises.
+\item Read the Chapter 1, 3, and 6 of S.J. Computer Vision. Make notes and complete the associated exercises.
+\item Apply what was learnt in this chapter using Python.
 \item Outline the structure of compute vision / machine learning.
 \end{itemize}
+
+\experiment{Prince: Computer Vision (Ch. 1, Introduction)}
+The book's structure was outlined. It consists of six sections:
+\begin{enumerate}
+\item Probability.
+\item Machine learning for machine vision.
+\item Graphical models (principled ways to simplify the relationship between image data and estimated properties) for machine vision.
+\item Image preprocessing.
+\item Geometric machine vision - generating 3D models based on image data and localizing a camera based on its view.
+\item Families of machine vision models for common problems.
+\end{enumerate}
+It took me about ten minutes to read through this first chapter of five pages. Relevant papers are listed at the end of each of the book's sections.
+
+\experiment{Prince: Computer Vision (Ch. 2, Introduction to Probability)}
+The second chapter took about an hour to read and make notes for. Almost all of it was review material: random variables, distributions, joint distributions, Bayes' rule, conditionality, and expectation. I did learn, however, two useful things:
+\begin{itemize}
+\item A Hinton diagram can be used to visualize probability mass functions. A square is associated with each point; the square's area relative to the total area of all squares corresponds to that value's relative probability. Figure \ref{fig:hinton_diagram} shows a Hinton diagram in two variables.
+\begin{figure}[h!]
+\centering
+\includegraphics[width=0.5\textwidth]{hinton_diagram.png}
+\caption{A Hinton diagram can be used to visualize probability mass functions in one or two variables.}
+\label{fig:hinton_diagram}
+\end{figure}
+\item A useful identity: if two random variables are independent, then the product of their expectation is equivalent to the expectation of their product. More generally:
+\begin{equation}
+	E[f(x) \cdot g(y)] = E[f(x)] \cdot E[g(y)]
+\end{equation}
+\end{itemize}
+
+
+
+\labday{Tuesday, 20th June 2017}
+\experiment{Summary}
+I woke at six (I'm getting the hang of it). For the first hour of the day I reviewed the project brief MZ had commented on and sent it off to PH. PH mentioned I could use his office for the next two weeks while he was away - hopefully I can pick up the key from him this afternoon.
+
+Today I would like to complete Chapters 3 and 4 of Prince's Computer Vision, do some modeling in Python, and begin the CVX course. I should also get an overview of the main computer vision tools for Python.
+
+I made notes on Chapter 3 and completed five of its exercises, which related to conjugacy, the exponential family, and the modes of the distributions studied.
+
+I intend to complete Chapter 4 this afternoon. I am now going to read Canny's paper.
+
+\experiment{Prince: Computer Vision (Ch. 2, Common Probability Distributions)}
+
+I started on Chapter 3 of Prince's book yesterday. It covers eight probability distributions that will be useful for machine vision purposes. Four of these are for modelling image data or world properties; the other four are for modelling the parameters of these four. I made notes, but have yet to complete the exercises. The distribution pairs covered were:
+\begin{itemize}
+	\item Bernoulli - Beta
+	\item Categorical - Dirichlet
+	\item Univariate normal - Normal-scaled inverse gamma
+	\item Multivariate normal - Normal inverse Wishart
+\end{itemize}
+The four distributions on the left were familiar to me, as was the beta distribution (however it was useful to note that the expectation of $\text{Beta}[\alpha, \beta]$ is defined by $\frac{\alpha}{\alpha + \beta}$). The Dirichlet, normal-inverse scaled gamma, and normal inverse wishart distributions were new to me. 
+
+The Dirichlet distribution is effectively a generalization of the beta distribution to cover more than one variable. It's used to model the $K$ parameters of a categorical distribution. As such, $\sum_k \lambda_k = 1$ at all points in the Dirichlet distribution. Its hyperparameters $\alpha_1, ..., \alpha_K$ describe the categorical distribution's expecations over each of its variables $E[\lambda_1], ..., E[\lambda_K]$; the magnitude of the $\alpha$ values determines the Dirichlet's dispersion.
+
+The Normal-scaled inverse gamma distribution is used to model uncertainty in the mean and variance of a univariate normal distribution. It has four parameters. In a similar vein, the normal inverse Wishart distribution describes uncertainty in the mean vector and covariance matrix of a multivariate normal distribution.
+
+I'm now going to complete three questions from the exercises, then go to the barbers. When I get back I will complete three more exercises, before continuing to read the Canny paper.
+
+I completed three questions. The first asked for the mode of the beta distribution (found by maximizing the pdf w.r.t. the variable). The second pointed out that all of the distributions in the chapter were members of the exponential family; it then requested the beta pdf in exponential family form. The third related a normal prior and restricted normal likelihood to a normal posterior (i.e. it was a conjugacy problem). These questions together took me about forty-five minutes to complete.
+
+This is not the first time the exponential distribution has been mentioned - why is understanding multiple distributions as variants on one distribution useful?
+
+I completed two more questions: showing that the normal-scaled inverse gamma is the conjugate prior to the univariate normal distribution; showing that the Dirichlet distribution is the conjugate prior to the categorical distribution. They were mostly exercises in algebra, but it did drive home why the Dirichlet and normal-scaled inverse gamma distributions are relevant, and what they look like (particularly w.r.t. the Dirichlet-beta similarities).
+
 \end{document}
