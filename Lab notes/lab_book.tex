@@ -336,6 +336,7 @@ As it happens, it's possible to rotate a distribution's coordinate system to per
 
 I spent the afternoon (10:30 - 16:00) in the DNV offices getting set-up with IT and so on. I also went through the two datasets made available to me so far.
 
+\experiment{PV Panels}
 The first dataset is a ~50 scans of PV panels. Possible objectives with these panels are:
 \begin{itemize}
 	\item Detecting cracks.
@@ -344,4 +345,22 @@ The first dataset is a ~50 scans of PV panels. Possible objectives with these pa
 \end{itemize}
 An example image is shown in Figure \ref{fig:example_pv_cell}. I made a repo for the PV project.
 
+\begin{figure}
+\centering
+\includegraphics[width=0.5\textwidth]{pv_cell.png}
+\caption{A sample image from the PV panels dataset.}
+\label{fig:example_pv_cell}
+\end{figure}
+
+\experiment{PV Panels: Crack detection}
+The objective of this task is to label images as according to whether or not they contain a crack - I don't think bounding boxes are appropriate. I'm going to begin by:
+\begin{itemize}
+	\item Rescaling the images to a constant size.
+	\item Labeling the panels according to the damage they've incurred.
+	\item Sorting the panels according to their type.
+\end{itemize}
+
+I created \texttt{panel-resizer.ipynb} to rescale the panel images to a fixed size\footnote{I deleted one duplicated image (52) and removed three smaller images}. This took me about an hour. While doing this, I realized that I could cluster the panels according to their metropolis distance from one another, generate an `undamaged' panel for each class, then use subtraction to identify damaged panels. I think the biggest weakness with such an approach, however, is the need for an `undamaged' panel image. How is easy would this be to generate synthetically?
+
+Tomorrow morning I should 
 \end{document}
