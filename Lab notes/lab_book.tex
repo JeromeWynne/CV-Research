@@ -299,6 +299,35 @@ This is not the first time the exponential distribution has been mentioned - why
 I completed two more questions: showing that the normal-scaled inverse gamma is the conjugate prior to the univariate normal distribution; showing that the Dirichlet distribution is the conjugate prior to the categorical distribution. They were mostly exercises in algebra, but it did drive home why the Dirichlet and normal-scaled inverse gamma distributions are relevant, and what they look like (particularly w.r.t. the Dirichlet-beta similarities).
 
 \experiment{Prince: Computer Vision (Ch. 4, Fitting Probability Models)}
-This chapter begins with maximum likelihood, maximum a posteriori, and bayesian methods for optimizing parameter estimates. I read through an example wherein the mean and variance of a univariate normal distribution were estimated using a normal-scaled inverse gamma prior; as it turns out, the benefits of using the conjugate here are twofold - not only does the posterior have a closed-form solution, but so also does the posterior predictive! I think I would benefit from writing out the Bayesian solution, and possibly running a simulation in Python. Maybe I'll go through the other example before building the simulation.
+The chapter began with maximum likelihood, maximum a posteriori, and bayesian methods for optimizing parameter estimates. I read through an example in which the mean and variance of a univariate normal distribution were estimated using a normal-scaled inverse gamma prior; as it turns out, the benefits of using the conjugate here are twofold - not only does the posterior have a closed-form solution, but so also does the posterior predictive! I think I would benefit from writing out the Bayesian solution, and possibly running a simulation in Python. Maybe I'll go through the other example before building the simulation.
+
+I made notes on both worked examples. The second example involved inferring posterior and posterior predictive distributions from a categorical likelihood and its conjugate (a Dirichlet prior). As in the case of the univariate normal - normal-scaled inverse gamma problem, bott distributions had neat solutions. The posterior was another Dirichlet distribution (with correspondingly updated parameters $\tilde{\alpha}_j = \alpha_j + N_j$) and the posterior predictive turned out to be a function of beta functions.
+
+I'm going to write two R simulations, one for each example.
+
+I built an R simulation for the first example.
+
+I attempted Q4.6, but fell short (the algebra became untangled). I will try again tomorrow morning; perhaps doing Q4.5 first will make it slightly easier. Once I've done those two questions, I should like to do Q4.7-4.10.
+Worked 4 - 7:30 on Com. Vis. Chapter 4.
+
+This evening I watched the first lecture from the CVX course. It explained what convex optimisation is, common variants of it (least squares and linear programming), discussed application areas, defined a convex functoin, provided an overview of the course, and gave some history on the topic.
+
+
+
+
+\labday{Wednesday, 21st June 2017}
+\experiment{Summary}
+Today I plan to:
+\begin{itemize}
+	\item Complete the exercises from Ch. 4 of Computer Vision
+	\item Walk through one of the examples available at PyImageSearch
+	\item Read Ch. 5 of Computer Vision and complete the associated exercises
+	\item Pick up Paul Harper's office key
+	\item Meet ET at 10:00 to have IT induction
+	\item Explore solar panel dataset
+	\item Investigate Python tools for tagging images
+	\item Read Chapter 1 of Boyd's Convex Optimisation
+\end{itemize}
+
 
 \end{document}
