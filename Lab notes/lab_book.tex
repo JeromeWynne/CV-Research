@@ -401,4 +401,41 @@ Today I planned to:
 	\item Read Ch. 1 of Boyd's \emph{Convex Optimisation}.
 \end{itemize}
 If there is time I will also begin reading Ch. 7 of \emph{Computer Vision}.
+
+(07:30 - 08:00) I planned my approach to the PV panel crack detection task on Office 365.
+
+(08:00 - 11:00) 
+
+\experiment{PV Panels: Crack Detection}
+To-dos:
+\begin{itemize}
+	\item Label subset images
+	\item Build augmented images dataset
+	\item Set up report
+	\item Benchmark simple classifiers against augmented images
+	\item Optimize best simple classifier
+	\item Record simple classifier performances in report
+	\item Set up Azure instance and train convnet against augmented images
+	\item Upload augmented images dataset
+	\item Investigate clustering of panels
+\end{itemize}
+
+\experiment{Prince: \emph{Computer Vision} (Ch. 5/6)}
+Yesterday my work from this book constituted reviewing the many properties of the multivariate normal distribution, among which were:
+\begin{itemize}
+	\item The marginal distribution of a subset of a vector of normal r.v.s is also normal.
+	\item The conditional distribution of a subset of vector of normal r.v.s, given the other r.v.'s values, is also a normal distribution.
+	\item Its covariance matrix an be diagonalized using the singular value decomposition, which forms a rotation matrix that twists the reference frame to align with the axes of the distribution's ellipsoidal isodensity contours.
+	\item It can have one of three types of covariance matrix - spherical, diagonal, or full - which determines how elliptical its isodensity contours are and what its orientation relative to the coordinate axes is.
+\end{itemize}
+In the evening I began work on Ch. 6, \emph{Learning and Inference in Vision}. It defined the basic task of machine vision as inferring world properties based on image data. It also outlined a framework for solving this problem consisting of three components:
+\begin{itemize}
+	\item A model relating image data to world properties.
+	\item A learning algorithm for adjusting that model's parameters based on observations.
+	\item An inference algorithm for returning a predicted world state based on input image data.
+\end{itemize}
+The model can be either discriminative or generative. A discriminative model describes $\text{Pr}(\mathbf{w}|\mathbf{x})$, the world state based on the image data. By contrast, a generative model instead represents the likelihood $\text{Pr}(\mathbf{x}|\mathbf{w}) - what the image data should be for a given world state.
+
+(08:20 - )
+
 \end{document}
