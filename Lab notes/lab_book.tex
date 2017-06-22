@@ -437,7 +437,7 @@ In the evening I began work on Ch. 6, \emph{Learning and Inference in Vision}. I
 The model can be either discriminative or generative. A discriminative model describes $\text{Pr}(\mathbf{w}|\mathbf{x})$, the world state based on the image data. By contrast, a generative model instead represents the likelihood $\text{Pr}(\mathbf{x}|\mathbf{w}$) - what the image data should be for a given world state.
 
 (08:20 - 9:20) Made notes on modeling a univariate continuous response with univariate continuous inputs using discriminative and generative methods. Also described how to model a binary response in terms of continuous image data, again via both generative and discriminative methods. 
-
+ 
 \begin{itemize}
 \item Univariate continuous data $x$, univariate continuous world state $w$
 	\begin{itemize}
@@ -450,5 +450,9 @@ The model can be either discriminative or generative. A discriminative model des
 		\item Generative approach: Set up a normal distribution over the data $\text{Pr}(x|w) = \text{Norm}_x[\phi_0 + \phi_1 w, \sigma^2]$ such that its parameters switch according to the world state $w \in \{0, 1\}$. Use a Bernoulli distribution for the world state prior $\text{Pr}(w) = \text{Bern}_w [\lambda_p]$ - fit $\lambda$ using the observed world states. For inference compute the posterior at the chosen set of inputs.
 	\end{itemize}
 \end{itemize}
+
+(09:30 - 10:10) Read through skin detection and background subtraction examples and the chapter summary. The skin detection algorithm set up a generative model describing pixel intensity based on skin/non-skin status via a multivariate normal distribution. The prior was a Bernoulli distribution on the world states. By contrast, the background subtraction example set up a likelihood function wherein the pixel intensities of foreground objects were described using a uniform distribution (i.e. all combinations of $(x_R, x_G, x_B)$ were deemed equally likely) and the intensity at each background pixel  in each scene was expressed in terms of a multivariate normal distribution.
+
+(10:20 - 11:45) Completed Ch.6 exercises 1, 3, 5, 7. Related modelling a continuous response against a binary world state to quadratic discriminant analysis and linear discriminant analysis (I ended up seeing this when comparing the for the decision boundary formed by two normal distributions with equiprobable associated classes with the decision boundary derived from a logistic regression classifier).
 
 \end{document}
