@@ -434,8 +434,21 @@ In the evening I began work on Ch. 6, \emph{Learning and Inference in Vision}. I
 	\item A learning algorithm for adjusting that model's parameters based on observations.
 	\item An inference algorithm for returning a predicted world state based on input image data.
 \end{itemize}
-The model can be either discriminative or generative. A discriminative model describes $\text{Pr}(\mathbf{w}|\mathbf{x})$, the world state based on the image data. By contrast, a generative model instead represents the likelihood $\text{Pr}(\mathbf{x}|\mathbf{w}) - what the image data should be for a given world state.
+The model can be either discriminative or generative. A discriminative model describes $\text{Pr}(\mathbf{w}|\mathbf{x})$, the world state based on the image data. By contrast, a generative model instead represents the likelihood $\text{Pr}(\mathbf{x}|\mathbf{w}$) - what the image data should be for a given world state.
 
-(08:20 - )
+(08:20 - 9:20) Made notes on modeling a univariate continuous response with univariate continuous inputs using discriminative and generative methods. Also described how to model a binary response in terms of continuous image data, again via both generative and discriminative methods. 
+
+\begin{itemize}
+\item Univariate continuous data $x$, univariate continuous world state $w$
+	\begin{itemize}
+		\item Discriminative approach: Model $\text{Pr}(w|x)$ using $\text{Norm}_{w}[\phi_0 + \phi_1 x, \sigma^2]$. Fit $(\phi_0, \phi_1, \sigma^2)$ based on training set $\{x_i, w_i\}_{i = 1}^I$.
+		\item Generative approach: Model $\text{Pr}(x|w)$ using $\text{Norm}_{x}[\phi_0 + \phi_1 w, \sigma^2]$, and $\text{Pr}(w)$  using $\text{Norm}_w [\mu_p, \sigma_p^2]$. Fit $(\mu_p, \sigma_p^2)$ using the available world states $\{w_i\}_{i = 1}^I$. Fit $(\phi_0, \phi_1, \sigma^2)$ using the training data $\{x_i, w_i\}_{i = 1}^I$. Compute the posterior using Bayes' rule. 
+	\end{itemize}
+\item Univariate continuous data $x$, binary world state $w$.
+	\begin{itemize}
+		\item Discriminative approach: Model $\text{Pr}(w|x)$ using a Bernoulli distribution parameterized by $\lambda = \text{sig}[\phi_0 + \phi_1 x] = \frac{1}{1 + \exp(-\phi_0 - \phi_1 x)}$. Fit $(\phi_0, \phi_1)$ using the training data.
+		\item Generative approach: Set up a normal distribution over the data $\text{Pr}(x|w) = \text{Norm}_x[\phi_0 + \phi_1 w, \sigma^2]$ such that its parameters switch according to the world state $w \in \{0, 1\}$. Use a Bernoulli distribution for the world state prior $\text{Pr}(w) = \text{Bern}_w [\lambda_p]$ - fit $\lambda$ using the observed world states. For inference compute the posterior at the chosen set of inputs.
+	\end{itemize}
+\end{itemize}
 
 \end{document}
