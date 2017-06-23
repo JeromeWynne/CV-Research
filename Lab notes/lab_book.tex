@@ -48,6 +48,8 @@
 \newcommand{\HRule}{\rule{\linewidth}{0.5mm}} % Command to make the lines in the title page
 \setlength\parindent{0pt} % Removes all indentation from paragraphs
 
+\DeclareMathOperator*{\argmax}{arg\,max}
+
 %----------------------------------------------------------------------------------------
 %	DEFINITION OF EXPERIMENTS
 %----------------------------------------------------------------------------------------
@@ -455,4 +457,58 @@ The model can be either discriminative or generative. A discriminative model des
 
 (10:20 - 11:45) Completed Ch.6 exercises 1, 3, 5, 7. Related modelling a continuous response against a binary world state to quadratic discriminant analysis and linear discriminant analysis (I ended up seeing this when comparing the for the decision boundary formed by two normal distributions with equiprobable associated classes with the decision boundary derived from a logistic regression classifier).
 
+(12:50 - 13:45) Labeled PV panels dataset.
+
+(14:00 - 16:05) Read (and made notes on) Ch. 7 of \emph{Computer Vision}.
+
+(16:05 - 16:45) Typed up lab notes from this afternoon's work on hidden variables and the EM algorithm.
+
+(19:15 - 22:15) Augmenting PV panel images. Image augmentations:
+\begin{itemize}
+	\item vertical flip
+	\item rescaling
+	\item adding noise
+\end{itemize}
+
+\experiment{Prince, \emph{Computer Vision} (Ch. 7, Modeling complex data densities)}
+
+This chapter frames the methods introduced by considering the shortcomings of attempting to build a generative model for a face classifier. Given a worldstate corresponding to face/no face, $w \in \{0, 1\}$, what is the probability density function for each pixel's intensity in an image of a fixed size? We might choose to model this likelihood using a normal distribution whose parameters are fit using training data:
+\[
+	\text{Pr}(\mathbf{x}|w) = \text{Norm}_{\mathbf{x}}[\mathbf{\mu}, \mathbf{\Sigma}]
+\]
+Notice that given $w = 1$, the parameters will be $\{\mathbf{\mu}_1, \mathbf{\Sigma}_1\}$, and given $w = 0$ the parameters will be $\{\mathbf{\mu}_0, \mathbf{\Sigma}_1\}$. By defining a prior over the world state (a Bernoulli distribution whose parameter $\lambda$ is fit using training data), we can get a hold of a posterior describing the probable world state, given a particular image's set of pixel intensities, $\text{Pr}(w|\mathbf{x})$.
+
+This modeling strategy has several shortcomings:
+\begin{itemize}
+	\item The normal distribution is sensitive to outliers - one extreme observation will set estimates of its mean and covariance way out of kilter.
+	\item A unimodal distribution doesn't describe what pixel intensities are probable if someone's face is in an image - people have different skin, eye, and hair colours.
+	\item An outrageous number of parameters needs to be estimated. Given a $30\times30$ RGB image, 2700 mean intensity values and $\frac{2700 \times 2701}{2}$ covariance values need to be estimated. To make this estimate unique then, about three-and-a-half million training examples are needed.
+\end{itemize}
+To get around these problems we can - respectively - use t-distributions, mixture models, and subspace models. All of these tools exploit hidden variables. A joint distribution over the variable being modeled $\mathbf{x}$ and a hidden variable $\mathbf{h}$ is defined such that when $\text{Pr}(\mathbf{x}, \mathbf{h})$ is marginalized over $\mathbf{h}$, a complex density function of $\mathbf{x}$ emerges. As with any distribution, this joint distribution is parameterized by some set of values $\mathbf{\theta}$ which are chosen to maximize the likelihood function:
+\[
+	\hat{\mathbf{\theta}} = \argmax_{\mathbf{\theta}} \Bigg[\sum_{i = 1}^I \log \Big[\int \text{Pr}(\mathbf{x}_i, \mathbf{h}_i | \mathbf{\theta})d\mathbf{h}_i\Big]\Bigg]
+\]
+The expectation maximization algorithm is used to maximize the likelihood. This algorithm proceeds by iteratively raising a lower bound on the likelihood function. The lower bound is a function of the parameters $\mathbf{\theta}$ and density distributions over the hidden variables. On the t\textsuperscript{th} iteration of the algorithm:
+\begin{enumerate}
+\item The boundary is raised as far as possible by setting the density functions $q_i(\mathbf{h}_i)$ to be $\text{Pr}(\mathbf{h}_i|\mathbf{x}_i, \mathbf{\theta}^[t-1])$.
+\item $\mathbf{\theta}^{[t]}$ is chosen to maximize the log-likelihood for the given density functions. 
+\end{enumerate}
+The first step is called the E-step (for expectation) and the second step is called the M-step (for maximization). By executing this algorithm repeatedly, it is possible to converge upon a local maximum in the likelihood function (which may also be the global maximum).
+
+ Use various scales of panel images to generate more data. 
+ 
+ 
+ 
+ \labday{Friday, 23rd June 2017}
+ 
+ (08:00 - 13:30) Read and made notes on Ch.7 of \emph{Computer Vision}. Covered hidden variables, expectation maximization, mixture of gaussians, the t-distribution, and factor analysis. Spent three hours building a mixture of gaussians model using World Happiness Report data. Figure \ref{fig:MoG} shows a fit being made with four component distributions. It may not look like much, but I learnt a lot from doing it!
+\begin{figure}[h!]
+\centering
+\includegraphics[width=0.7\textwidth]{MoG.pdf}
+\caption{Fitting a four-component mixture of gaussians model using expectation maximization.}
+\label{fig:MoG}
+\end{figure}
 \end{document}
+ (16:00 - 17:45) Made notes on factor analyzers.
+ 
+ (17:45 - 20:00) Ironed out some bugs in the PV panel organizer. Ran a random forest and an rbf SVM against augmented traiing data (they did all right, ~80\% accuracy). I'll type out what I did in more detail later.
