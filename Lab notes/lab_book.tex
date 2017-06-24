@@ -508,7 +508,40 @@ The first step is called the E-step (for expectation) and the second step is cal
 \caption{Fitting a four-component mixture of gaussians model using expectation maximization.}
 \label{fig:MoG}
 \end{figure}
-\end{document}
  (16:00 - 17:45) Made notes on factor analyzers.
  
  (17:45 - 20:00) Ironed out some bugs in the PV panel organizer. Ran a random forest and an rbf SVM against augmented traiing data (they did all right, ~80\% accuracy). I'll type out what I did in more detail later.
+ 
+ \experiment{Prince, \emph{Computer Vision} (Ch.7 Modeling Complex Data Densities)}
+ So today I covered three things, all of in this chapter, all bearing a single commonality. They were introduced as tools with which to address weaknesses of using a normal model model for the likely intensities of a pixel (or some other continuous feature) for a given world state. In particular, a single peak probably doesn't represent reality very well, the parameter fits are very sensitive to outliers, and a vast number of parameters need to be determined as a result of the covariance matrix. The solutions to these problems, respectively, were:
+ \begin{itemize}
+ 	\item Using a mixture of gaussians instead of one.
+ 	\item Using a t-distribution rather than a normal distribution.
+ 	\item Reducing the number of parameters to be determined by only modeling the covariation in directions where it is strongest.
+ \end{itemize}
+ Neatly, it turns out that all of these model variations can be represented in terms of hidden variables (which I described yesterday). A mixture of gaussians uses a categorically distributed hidden variable to weight the various normal distributions, each of which have their own covariance and mean. A variable with a t-distribution can actually be thought of as a normally distributed variable whose variance is parameterised by a scalar gamma-distributed variable. That is,
+\begin{align*}
+ 	\text{Pr}(\mathbf{x}|\mathbf{h}) &= \text{Norm}_{\mathbf{x}_i}[\mathbf{\mu}, \mathbf{\Sigma}/h] \\
+ 	\text{Pr}(\mathbf{h}) &= \text{Gamma}_h[\nu/2, \nu/2]
+\end{align*}
+ While I had previously appreciated that the t-distribution's greater spread is a consequence of uncertainty w.r.t. its variance, this formulation made it especially clear what the role played by the degrees of freedom is.
+ 
+ The third solution - factor analyzers - is something I'm still wrapping my head mathematically but I think I understand in principle. Sample a vector $\mathbf{h}$ from a multivariate standard normal distribution then use it to adjust the mean of a normal distribution to somewhere in the subspace described by its factors. Sample $\mathbf{x}$ from this shifted normal distribution. The hidden variable here is the sampled vector: the distribution of samples from the shifted normal distribution turns out to be normal also, but with a covariance such that:
+ \[
+ 	\text{Pr}(\mathbf{x}|\mathbf{h}) = \text{Norm}_{\mathbf{x}_i}[\mathbf{\mu}, \mathbf{\phi\phi}^T + \mathbf{\Sigma}]
+ \]
+ Where $\mathbf{\phi}$ is a $D \times K$ matrix whose columns are the basis vectors (factors) of the subspace and $\mathbf{\Sigma}$ is a $D \times D$ diagonal (or spherical) covariance matrix. The factors are chosen to describe as much of the covariation in the full columnspace as possible, with the diagonal covariance matrix capturing the meat of the variance: a factor analyzer attempts to capture as much of the variation in the data's full $D$-dimensional columnspace in terms of an $\mathbb{R}^K$-dimensional subspace. One of the things I'm still trying to understand is why $\mathbf{\phi}\mathbf{\phi}^T$ represents covariation in the subspace - I plan to look at this today (I wrote the follow-up to the 23\textsuperscript{rd}'s work on the 24\textsuperscript{th}). As an aside, the author mentioned that when $\mathbf{\Sigma}$ is a spherical covariance matrix (that is, a scalar multiple of the identity matrix), this method is called principal component analysis. The benefit of using a spherical rather than a diagonal matrix is that it reduces further still the number of parameters to be fit (hence its widespread use when wrangling wide data).
+ 
+ The reason the author framed the t-distribution, mixture of gaussian, and factor analysis model in terms of hidden variables is because density functions that can be expressed as a marginalization over a hidden variable (Equation \ref{eq:hidden_variable_marginalization}) lend themselves to optimization via expectation maximization.
+ \[
+ 	\text{Pr}(\mathbf{x|\mathbf{\theta}}) = \int\text{Pr}(\mathbf{x}, \mathbf{h}|\mathbf{\theta})\cdot d\mathbf{h}\label{eq:hidden_variable_marginalization}
+ \]
+ The model parameters $\mathbf{\theta}$ can be fit by iterative maximization of a bound on the l.h.s's likelihood function. This bound is a function of the r.h.s.; EM raises this boundary by iteratively:
+ \begin{itemize}
+ \item updating density functions over the hidden variables,
+ \item maximizing the boundary's value by adjusting the values of the parameters in $\mathbf{\theta}$.
+ \end{itemize}
+ Eventually, the boundary converges on the log-likelihood function such that a set of locally optimal parameter values are found.
+ 
+\end{document}
+ 
