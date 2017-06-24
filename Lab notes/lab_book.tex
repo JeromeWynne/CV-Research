@@ -546,7 +546,7 @@ The first step is called the E-step (for expectation) and the second step is cal
  As I said, I think there are still things about factor analyzers I'd like to understand; I would quite like to build a dummy model tomorrow to get more of a feel for how they work. I also need to look at the proof the boundary that the EM algorithm exploits and understand what its limitations are.
  
  \experiment{PV Panels: Crack detection}
- As I briefly mentioned in today's summary, I fixed some bugs in the \texttt{panel-organizer} set of scripts and ran some simple classifiers against them, namely a random forest and an rbf SVM. Like I said, they both achieved $\approx 80\%$. Given that these models don't exploit the spatial information available in the images (I downsampled them  from $159 \times 159$ to $60 \times 60$, then flattened them), I'm optimistic about what we can achieve. I am aware that there might still be a bug w.r.t. class balances (I think I may have generated too many augmented crack images) and that only augmenting cracked panels is methodologically flawed (augmentation introduces distinctive features to the images), problems I intend to resolve tomorrow. I would also like to experiment with capturing spatial data (e.g. HOGs or moments, I feel that reading would also help here). It may also be the case that segmenting the images might help, as might clustering models of panel. I also need to set up a report for the panel work and conceive of a system to log classifier/preprocessing performance (or borrow a method from someone smarter than me!).
+ As I briefly mentioned in today's summary, I fixed some bugs in the \texttt{panel-organizer} set of scripts and ran some simple classifiers against them, namely a random forest and an rbf SVM. Like I said, they both achieved accuracies of $\approx80\%$. Given that these models don't exploit the spatial information available in the images (I downsampled them  from $159 \times 159$ to $60 \times 60$, then flattened them), I'm optimistic about what we can achieve. I am aware that there might still be a bug w.r.t. class balances (I think I may have generated too many augmented crack images) and that only augmenting cracked panels is methodologically flawed (augmentation introduces distinctive features to the images), problems I intend to resolve tomorrow. I would also like to experiment with capturing spatial data (e.g. HOGs or moments, I feel that reading would also help here). It may also be the case that segmenting the images might help, as might clustering models of panel. I also need to set up a report for the panel work and conceive of a system to log classifier/preprocessing performance (or borrow a method from someone smarter than me!).
  
  
  
@@ -626,8 +626,17 @@ The Grand Challenges relevant to me are:
 \end{itemize}
 It is only possible to apply under one Challenge. Read more about each challenge and institution at \texttt{https://vestscholars.org/research-challenges}.
   
- (12:00 - ) I spent the first hour-and-a-half reviewing what I worked on yesterday and basically attempting to orient myself for the forthcoming week. I then an hour understanding the Fulbright and Vest scholarships. With regards to these, at the beginning of August I need to begin drafting my university and funding applications. I should also make a schedule of application deadlines and requirements. Register for ACT/SAT tests. This evening and tomorrow morning I should make time to plan my research placement more thoroughly.
+ (12:00 - 14:40) I spent the first hour-and-a-half reviewing what I worked on yesterday and basically attempting to orient myself for the forthcoming week. I then an hour understanding the Fulbright and Vest scholarships. With regards to these, at the beginning of August I need to begin drafting my university and funding applications. I should also make a schedule of application deadlines and requirements. Register for ACT/SAT tests. This evening and tomorrow morning I should make time to plan my research placement more thoroughly.
  
- Today I would like to neaten up by understanding of the EM algorithm, build a factor analyzer, read the first chapter of Boyd's \emph{Convex Optimization}, 
+ (14:40 - 16:40) Detailed notes on the EM algorithm (yay understanding). Prove Jensen's inequality.
+ 
+ \begin{figure}
+ \includegraphics[width=\textwidth]{log_vs_lin.pdf}
+ \caption{}
+ \label{fig:log_vs_lin}
+ \end{figure}
+ 
+ Today I would like to neaten up my understanding of the EM algorithm, build a factor analyzer, and read the first chapter of Boyd's \emph{Convex Optimization}.
+ 
 \end{document}
  
