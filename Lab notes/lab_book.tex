@@ -543,5 +543,91 @@ The first step is called the E-step (for expectation) and the second step is cal
  \end{itemize}
  Eventually, the boundary converges on the log-likelihood function such that a set of locally optimal parameter values are found.
  
+ As I said, I think there are still things about factor analyzers I'd like to understand; I would quite like to build a dummy model tomorrow to get more of a feel for how they work. I also need to look at the proof the boundary that the EM algorithm exploits and understand what its limitations are.
+ 
+ \experiment{PV Panels: Crack detection}
+ As I briefly mentioned in today's summary, I fixed some bugs in the \texttt{panel-organizer} set of scripts and ran some simple classifiers against them, namely a random forest and an rbf SVM. Like I said, they both achieved $\approx 80\%$. Given that these models don't exploit the spatial information available in the images (I downsampled them  from $159 \times 159$ to $60 \times 60$, then flattened them), I'm optimistic about what we can achieve. I am aware that there might still be a bug w.r.t. class balances (I think I may have generated too many augmented crack images) and that only augmenting cracked panels is methodologically flawed (augmentation introduces distinctive features to the images), problems I intend to resolve tomorrow. I would also like to experiment with capturing spatial data (e.g. HOGs or moments, I feel that reading would also help here). It may also be the case that segmenting the images might help, as might clustering models of panel. I also need to set up a report for the panel work and conceive of a system to log classifier/preprocessing performance (or borrow a method from someone smarter than me!).
+ 
+ 
+ 
+ \labday{Saturday, 24th June 2017}
+ I woke at 06:45 this morning to swim for an hour and a quarter (I did 64 lengths of a 30m pool - 1920m). I had never swum more than 2 or 3 lengths in a pool before: my form was terrible and for the first five lengths I had difficulty breathing. The breathing trouble made me slightly panicked, which made it even harder to breather (and so on). I pushed through however, and by the end I was breast-stroking like an enthusiastic amateur. I also felt pretty great. I swam the lengths as part of a relay effort parallel to a friend's Channel attempt (1000 lengths, 30km) and felt that doing the lengths helped me to better understand their achievement.
+ 
+ I spent a couple of hours with MZ discussing various things, most notably our 4\textsuperscript{th} year project, a book on scarcity he is reading, and the VEST and Fulbright scholarships. I intend to apply for both of these scholarships, so I should probably capture the information here.
+ 
+ \experiment{Fulbright and VEST Scholarships}
+ Fulbright scholarships are awarded by the US Bureau of Educational and Cultural affairs under the Department of State. Approximately 800 scholarships are awarded each year to international students (Visiting Scholars). Emphazises leadership, commitment to international engagement, and cultural interaction. Fulbrighters seek to create a more peaceful and prosperous world. Funding is available for research and/or lecturing.
+ 
+ Benefits of studying in the USA:
+ \begin{itemize}
+ 	\item Quality of research
+ 	\item Flexible and interdisciplinary
+ 	\item International experience
+ 	\item Funding
+ \end{itemize}
+ 
+Fulbright postgraduate scholarships (http://www.fulbright.org.uk/going-to-the-usa/postgraduate): any master's/doctoral degress at any graduate programme at a US university. The scholarship offers:
+\begin{itemize}
+	\item Financial contributions towards the first year of study
+	\item Sickness and accident coverage
+	\item J-1 visa sponsorship and pre-departure orientation
+	\item Support whilst in the USA
+	\item Access to the Fulbright alumni network
+\end{itemize}
+  The programme aims to foster cultural understanding between the US and UK - little previous experience with the USA is desirable.
+Awards available:
+\begin{itemize}
+	\item Brown University: PhD in any discipline.
+	\item The New School: Master's degree in any discipline.
+	\item Lloyd's of London: Master's degree in any discipline related to risk.
+	\item University of South Florida: PhD in any discipline.
+	\item Fulbright: Master's/PhD/research at any university.
+	\item Elsevier Data Analytics: Postgraduate study requiring data analysis or research at any university.
+\end{itemize}
+  ``We are looking for applicants who can engage with the USA in an atmosphere of openness, academic integrity and intellectual freedom, thereby promoting mutual understanding.''
+Desirable applicants would be able to demonstrate:
+\begin{itemize}
+	\item Strong academic proposals and/or research projects
+	\item Ambassadorial skills
+	\item Intercultural sensitivity
+	\item Genuine desire to learn aspects of American culture
+	\item Extracurricular activities
+	\item Community involvement
+	\item Leadership potential
+	\item Plans to further the Fulbright mission and give back to the UK upon returning
+\end{itemize}
+
+Applications process:
+\begin{enumerate}
+	\item Read the UK-specific instructions.
+	\item Applications open: link on the bottom of this page (http://www.fulbright.org.uk/going-to-the-usa/postgraduate/fulbright-postgraduate-scholarships/how-to-apply). This requires bio information, academic/professional accomplishments, Fulbright project plans, personal statement, details of the US institutions that you intend to apply to, and three reference nominations.
+	\item Upload the US-UK Fulbright Commission Form to this applications.
+	\item Upload other information (passport, CV, transcripts, US university admission letter, portfolio)
+\end{enumerate}
+Applications to US universities must be made separately and in good time. If shortlisted, the interview will be in January or February. Status is notified in March. Applications open in August. The British Fulbright Commission provide lots of information regarding American University's application procedures (see here: http://www.fulbright.org.uk/going-to-the-usa/postgraduate/educationusa-advice).
+  
+ 
+\experiment{VEST Scholarship}
+The Charles M. Vest NAE Grand Challenges for Engineering International Scholarship Program provides an opportunity for graduate students at international universities to pursue reserach addressing a global Grand Challenge at leading United States university. The goals of the Vest Scholarships are to provide a platform to exchange ideas, share problem-solving skills and strengthen international  relationships in order to advance progress in some of the most critical global challenges in the twenty-first century. The scholarship offers;
+\begin{itemize}
+	\item The opportunity to spend a year at a leading US engineering school pursuing research.
+	\item Living and travel expenses and tuition covered by the host institution for the 12-month duration of the scholarship.
+	\item An opportuntiy to perform research in the laboratory of a leading faculty scholar.
+	\item Access to engineering classes and academic credit towards graduate degrees.
+	\item 10 scholarships available - one at each partner institution.
+\end{itemize}
+Applicants must be enrolled in a graduate-level engineering program at the time of application and during the scholarship year. Applicants will be asked to submit a personal statement proposing a one-year research and study plan that addresses one of the 14 Grand Challenges for Engineering. Winning statements will be those that presen the most compelling and potentially impactful proposal, and that map best onto Grand Challenge activities at the participating institutions. Academic aptitude and potential for success will be an important part of the selection process. Applications open August 1 and close November 1. The winnders are contacted on February 15, 2018.
+
+The Grand Challenges relevant to me are:
+\begin{itemize}
+\item Engineer the tools of scientific discovery (Caltech, Duke, Washington
+\item Advance health informatics (MIT, North Carolina, University of Minnesota)
+\item Advance personalized learning (MIT, Olin)
+\end{itemize}
+It is only possible to apply under one Challenge. Read more about each challenge and institution at \texttt{https://vestscholars.org/research-challenges}.
+  
+ (12:00 - ) I spent the first hour-and-a-half reviewing what I worked on yesterday and basically attempting to orient myself for the forthcoming week. I then an hour understanding the Fulbright and Vest scholarships. With regards to these, at the beginning of August I need to begin drafting my university and funding applications. I should also make a schedule of application deadlines and requirements. Register for ACT/SAT tests. This evening and tomorrow morning I should make time to plan my research placement more thoroughly.
+ 
+ Today I would like to neaten up by understanding of the EM algorithm, build a factor analyzer, read the first chapter of Boyd's \emph{Convex Optimization}, 
 \end{document}
  
