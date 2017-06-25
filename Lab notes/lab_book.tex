@@ -555,7 +555,21 @@ The first step is called the E-step (for expectation) and the second step is cal
  
  I spent a couple of hours with MZ discussing various things, most notably our 4\textsuperscript{th} year project, a book on scarcity he is reading, and the VEST and Fulbright scholarships. I intend to apply for both of these scholarships, so I should probably capture the information here.
  
- \experiment{Fulbright and VEST Scholarships}
+  (12:00 - 14:40) I spent the first hour-and-a-half reviewing what I worked on yesterday and basically attempting to orient myself for the forthcoming week. I then an hour understanding the Fulbright and Vest scholarships. With regards to these, at the beginning of August I need to begin drafting my university and funding applications. I should also make a schedule of application deadlines and requirements. Register for ACT/SAT tests. This evening and tomorrow morning I should make time to plan my research placement more thoroughly.
+ 
+ (14:40 - 16:40) Detailed notes on the EM algorithm (yay understanding). Prove Jensen's inequality.
+ 
+ (16:40 - 19:10) Wrote source code for identifying faces using a factor analyzer. Found dataset (\texttt{http://cswww.essex.ac.uk/mv/allfaces/faces94.html}), imported and labeled the data.
+ 
+ \begin{figure}
+ \includegraphics[width=\textwidth]{log_vs_lin.pdf}
+ \caption{}
+ \label{fig:log_vs_lin}
+ \end{figure}
+ 
+ Today I would like to neaten up my understanding of the EM algorithm, build a factor analyzer, and read the first chapter of Boyd's \emph{Convex Optimization}.
+ 
+ \experiment{Fulbright Scholarship}
  Fulbright scholarships are awarded by the US Bureau of Educational and Cultural affairs under the Department of State. Approximately 800 scholarships are awarded each year to international students (Visiting Scholars). Emphazises leadership, commitment to international engagement, and cultural interaction. Fulbrighters seek to create a more peaceful and prosperous world. Funding is available for research and/or lecturing.
  
  Benefits of studying in the USA:
@@ -620,23 +634,99 @@ Applicants must be enrolled in a graduate-level engineering program at the time 
 
 The Grand Challenges relevant to me are:
 \begin{itemize}
-\item Engineer the tools of scientific discovery (Caltech, Duke, Washington
+\item Engineer the tools of scientific discovery (Caltech, Duke, Washington)
 \item Advance health informatics (MIT, North Carolina, University of Minnesota)
 \item Advance personalized learning (MIT, Olin)
 \end{itemize}
 It is only possible to apply under one Challenge. Read more about each challenge and institution at \texttt{https://vestscholars.org/research-challenges}.
-  
- (12:00 - 14:40) I spent the first hour-and-a-half reviewing what I worked on yesterday and basically attempting to orient myself for the forthcoming week. I then an hour understanding the Fulbright and Vest scholarships. With regards to these, at the beginning of August I need to begin drafting my university and funding applications. I should also make a schedule of application deadlines and requirements. Register for ACT/SAT tests. This evening and tomorrow morning I should make time to plan my research placement more thoroughly.
- 
- (14:40 - 16:40) Detailed notes on the EM algorithm (yay understanding). Prove Jensen's inequality.
- 
- \begin{figure}
- \includegraphics[width=\textwidth]{log_vs_lin.pdf}
- \caption{}
- \label{fig:log_vs_lin}
- \end{figure}
- 
- Today I would like to neaten up my understanding of the EM algorithm, build a factor analyzer, and read the first chapter of Boyd's \emph{Convex Optimization}.
- 
+
+
+
+\labday{Sunday, 25th June 2017}
+(08:45 - 09:45) I overslept this morning (it's a Sunday), but I can pick up the hours this afternoon/evening. Yesterday I built part of a factor analyzer, produced detailed notes on the EM algorithm - namely a proof for the bound used and a proof for the choice of density function in the E-step - and read about the Fulbright and Vest scholarships.
+
+Today I would like to:
+\begin{itemize}
+	\item Finish the factor analyzer
+	\item Email MM and ET with a review of what I've been up to this week:
+	\begin{itemize}
+		\item Reading: generative models of data using hidden variables and the EM algorithm (esp. mixture of gaussians and factor analyzers). Built a univariate MoG model and a factor analyzer for face identification. Read Canny \emph{A Computational Approach to Edge Detection}. Read paper \emph{Detection and classification of surface defects of gun barrels using computer vision and machine learning}. I started a MOOC focused on convex optimization.
+		\item DNV: IT induction. Gained access to wind turbine and PV panel datasets. Began work on PV panel problem to detect cracked panels. I built several simple classifiers (a random forest, a boosted forest, and a radial basis SVM) against a subset of the data.
+		\item NW Reading: Bayesian linear, nonlinear, and sparse linear regression models (2 days). Bayesian logistic, nonlinear logistic, and boosting models (2 days). Graphical models (2 days).
+		\item NW DNV: If Azure access is available, train a convnet against the solar panel dataset. Set up a dummy generative adversarial model for synthetic data generation.
+	\end{itemize}
+	\item Read the GAN paper.
+	\item Fix the size of the augmented dataset. Change the programme such that it augments both cracked and non-cracked panels (add Bernoulli variable to speckling).
+	\item Build a HOG feature generator.
+	\item What's SIFT?
+	\item Use \texttt{skimage}'s tools to segment the panels.
+	\item Email family describing what you've been up to this week.
+\end{itemize}
+
+There are 7 weeks left as of right now:
+\begin{itemize}
+	\item Week 2:
+		\begin{itemize}
+			\item Read five papers. (9 hours)
+			\item Complete two sets of lectures from \emph{Convex Optimization} (12.5 hours).
+			\item Complete Chapters 8, 9, 10 of \emph{Computer Vision} (25 hours).
+			\item Complete as much of the TensorFlow Udacity course as you can. (25 hours).
+			\item Complete and report the PV panel crack detection problem (12.5 hours).
+			\item 
+		\end{itemize}
+	\item Week 3:
+		\begin{itemize}
+			\item Read five papers. (9 hours)
+			\item Complete two sets of lectures from \emph{Convex Optimization} (12.5 hours).
+			\item Complete Chapters 11, 12, 13 of \emph{Computer Vision} (25 hours).
+			\item Finish the TensorFlow Udacity course. (25 hours).
+			\item Choose a research problem to solve.
+			\item Complete and report the PV panel crack detection problem (12.5 hours).
+		\end{itemize}
+	\item Week 4:
+		\begin{itemize}
+			\item Read five papers. (9 hours)
+			\item Complete two sets of lectures from \emph{Convex Optimization} (12.5 hours).
+			\item Complete Chapters 14, 15, 16 of \emph{Computer Vision} (25 hours).
+			\item Work on the research problem (37.5 hours).
+			\item Set a reminder to register for NIPS.
+			\item Set a reminder to start investigating postgraduate degrees at universities (and schedule submission dates, exams and so on).
+		\end{itemize}
+	\item Week 5:
+		\begin{itemize}
+			\item TBD
+		\end{itemize}
+\end{itemize}
+
+(12:30 - ) Reviewed yesterday's work.
+
+\experiment{Prince, \emph{Computer Vision} (Ch. 7, Modeling Complex Data Densities}
+ Yesterday I finished this chapter by re-covering factor analyzers - generative models that use a subspace to quantify covariance rather than the full feature space - and tying up the loose ends in my understanding of the EM algorithm. The particular loose ends covered were:
+ \begin{itemize}
+ 	\item Proof that the bondary function is less than the log-likelihood. That is, we proved that:
+ 	\[
+ 		\sum_{i=1}^I \int q_i(h_i) \log\Bigg[\frac{\text{Pr}(h_i, x_i| \theta)}{q_i(h_i)} \Bigg]dh_i \ \leq \ \sum_{i=1}^I \log\Bigg[\int q_i(h_i) \frac{\text{Pr}(h_i, x_i| \theta)}{q_i(h_i)}dh_i \Bigg]
+ 	\]
+ 	Or, in a form that gives a better insight into what's actually going on:
+ 	\[
+ 		\sum_{i=1}^I E\Bigg[\log\Big[\frac{\text{Pr}(x_i, h_i|\theta)}{q_i(h_i)}\Big]\Bigg] \leq \sum_{i=1}^I \log\Bigg[E\Big[\frac{\text{Pr}(x_i, h_i|\theta}{q_i (h_i)}\Big]\Bigg]
+ 	\]
+ 	The proof for this inequality relies on Jensen's inequality, which states that:
+ 	\[
+ 		E[\log y] \leq \log[Ey]
+ 	\]
+ 	I haven't proven this, but logarithms tend to squish big numbers, hence shrinking their expectations. I think it's the case that this form of boundary is chosen because it makes it clearer what the the appropriate density functions $q_i(h_i)$ to maximize the boundary are.
+ 	\item In particular, we proved that the choice of $q_i(h_i)$ in the E-step should be the hidden variable's posterior given the data and parameters at that step:
+ 	\[
+ 		\hat{q}_i(h_i) = \text{Pr}(h_i | x_i, \theta^{[t]})
+ 	\]
+ 	We did this by rearranging the optimization problem of the E-step to bring out the Kullback-Leibler divergence:
+ 	\[
+ 		q_i(h_i) \cdot \log\Big[\frac{\text{Pr}(h_i|x_i, \theta)}{q_i(h_i)}\Big]
+ 	\]
+ 	which can be shown to always be negative, further meaning that the boundary-maximizing choice of $q_i(h_i)$ is indeed the aforementioned posterior.
+ 	\item On a high level, I understood why the boundary function is always less than or equal to the log-likelihood of the joint distribution of $\text{Pr}(x_i, h_i|\theta)$, and what choice of $q_i(h_i)$ satisfies the equality of the two for a given choice of model parameters $\theta$. The EM algorithm is useful because it allows nonlinear functions to be optimized, provided that they can be expressed in terms of a hidden variable.
+ \end{itemize}
+ After making notes on this, I started building a factor analyzer to identify faces from images. I wrote out the source code; today I intend to create a functional programme. I think I'll also go through the applications, since these are what have really been allowing me to convert theoretical knowledge to practical utility.
 \end{document}
  
