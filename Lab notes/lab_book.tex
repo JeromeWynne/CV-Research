@@ -698,7 +698,9 @@ There are 7 weeks left as of right now:
 		\end{itemize}
 \end{itemize}
 
-(12:30 - ) Reviewed yesterday's work.
+(12:30 -14:00 ) Reviewed yesterday's work, made notes on the applications of the models discussed in Ch.7 of \emph{Computer Vision}. These included regression onto missing data (described in the context of reorienting faces), using t-distributions to model patches of images for object classification, identifying faces using factor analysis, and understanding transformations as hidden variables.
+
+(14:00 - )
 
 \experiment{Prince, \emph{Computer Vision} (Ch. 7, Modeling Complex Data Densities}
  Yesterday I finished this chapter by re-covering factor analyzers - generative models that use a subspace to quantify covariance rather than the full feature space - and tying up the loose ends in my understanding of the EM algorithm. The particular loose ends covered were:
@@ -728,5 +730,9 @@ There are 7 weeks left as of right now:
  	\item On a high level, I understood why the boundary function is always less than or equal to the log-likelihood of the joint distribution of $\text{Pr}(x_i, h_i|\theta)$, and what choice of $q_i(h_i)$ satisfies the equality of the two for a given choice of model parameters $\theta$. The EM algorithm is useful because it allows nonlinear functions to be optimized, provided that they can be expressed in terms of a hidden variable.
  \end{itemize}
  After making notes on this, I started building a factor analyzer to identify faces from images. I wrote out the source code; today I intend to create a functional programme. I think I'll also go through the applications, since these are what have really been allowing me to convert theoretical knowledge to practical utility.
+ 
+ Idea: regressing cracks onto the rest of their panels, then conditioning over an incomplete uncracked panel to generate a cracked panel image (See pp. 104 of \emph{Computer Vision}).
+ 
+ I think I would benefit most from Chapter 7's problems if I were to do them in the middle of next week (say Thursday) rather than right now.
 \end{document}
  
