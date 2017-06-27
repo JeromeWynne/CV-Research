@@ -38,6 +38,7 @@
 \usepackage[parfill]{parskip}
 \usepackage{amsmath}
 \usepackage{amssymb}
+\usepackage{csquotes}
 \graphicspath{{./images/}}
 
 \newlength{\mylen}
@@ -748,18 +749,123 @@ Hours worked this week:
  
  I think I would benefit most from Chapter 7's problems if I were to do them in the middle of next week (say Thursday) rather than right now.
  
+  \experiment{Prince, \emph{Computer Vision} (Ch. 8, Regression models}
+ \begin{figure}[h!]
+ \centering
+ \includegraphics[width=0.5\textwidth]{factor_analyzer_class_mean_and_factor.png}
+ \caption{The mean (left) and single factor (right) of a grayscale image from the factor analyzer.}
+ \end{figure}
+ 
  
  
  \labday{Monday, 26th June 2017}
+ 
+ \experiment{Summary}
  (08:00 - 11:00) Prince's \emph{Computer Vision}, Ch. 8. Linear regression, Bayesian linear regression, nonlinear regression (inc. kernels, radial basis functions, and gaussian process regression), sparse linear regression.
  
  (11:15 - 13:00) Tensorflow lectures - received first assignment.
  
- (15:15 - 16:45) Sent a weekly update to ET and MM.
+ (15:15 - 16:45) Sent a weekly update to ET and MM. It was as follows:
+ \begin{displayquote}
+ \small
+ Hello Professor Mirmehdi,\\[1em]
+I hope you're well. Paul Harper introduced us several months ago: I'm an undergraduate researcher in machine vision working at the University/DNV-GL. Pleased to meet you (again).\\[0.7em]
+My reason for emailing is that since you are my point of contact with the University and are an expert in machine vision, I thought it would be a good idea if gave you a weekly update of what I've been up to. This is so that:
+\begin{itemize}
+\item[(a)] you know I'm spending my placement time productively
+\item[(b)] I can benefit from your guidance as to whether I'm following an unpromising path / could make use of some theory/tools in particular.
+\end{itemize}
+I appreciate that you are busy and will try to keep these emails succinct - if you'd rather not hear from me, please let me know. Anyway, last week I:
+\begin{itemize}
+\item Spent a lot of time reading about how to use the expectation maximisation algorithm. I built a factor analyser to identify faces in this dataset (http://cswww.essex.ac.uk/mv/allfaces/index.html) and a Gaussian mixture model against another dataset. I know that these are quite old-school methods, but I think understanding them will aid my general grasp of machine learning and vision.
+\item Began working on classifying grayscale images of cracked PV panels for DNV. I've cleaned, subset, augmented and split a dataset that was originally of about 50 unique panels. I also ran a random forest and a radial basis function support vector machine against the training set, without any preprocessing (apart from standardisation). I was planning to use a histogram of oriented gradients as the classifier's input (possibly in addition to the pixel intensities?). This is because the cracks seem to be distinguished by their orientation. I may try a convnet, but think it will probably overfit.
+\item Started a course on numerical methods for convex optimisation. This is in an effort to understand how to phrase optimisation problems in a sensible way. I think the first few weeks focus on theory, after which there's a strong emphasis on applications.
+\item Became more interested in methods for generating synthetic data. I was thinking of building a generative adversarial network (GAN, a pair of competing neural networks, one of which attempts to generate fake images, the other which tries to spot images that are fake) and looking at using generative models of cracked PV panels to transplant fake cracks onto images of uncracked panels
+\end{itemize}
+This week I was going to finish the PV panel classifier and summarise its performance in a report. I have also allocated a big chunk of time to reading, some of which will go towards reading about and building GANs.\\[0.7em]
+Do you have time to meet this week? I was had a few questions about choice of model and preprocessing procedure for the PV panel classification task. Also, your suggestions of what I should read about/work on to make the placement worthwhile would be really useful to me.\\[0.7em]
+Thank you and have a great week,\\[0.7em]
+Jerome
+\end{displayquote}
  
- \begin{figure}[h!]
- \centering
- \includegraphics[width=0.5\textwidth]{factor_analyzer_class_mean_and_factor.png}
- \end{figure}
+ (16:45 - 17:45) Tensorflow assignment.
+
+ (17:55 - 18:40) Read Ch. 1 of \emph{Convex optimization}. The course begins by focusing on the maths of convex sets, functions, and optimization, before moving onto applications and algorithms. A convex function is a function that is less than or equal to a line between two points in its 
+ 
+ (18:45 - 19:45) Finished the Tensorflow assignment. It focused on data cleaning and fitting a logistic regression classifier. It didn't actually involve using TF! I used the package \texttt{tqmd}, which made it easy to associate loading bars with \texttt{for} loops. My memory of pickling was also refreshed - it is a pretty convenient way to store large Python structures on disk for access at short notice.
+ 
+ \experiment{Prince, \emph{Computer Vision} (Ch. 8, Regression models)}
+ After the previous chapter's focus on various generative models, which modeled the data's distribution for given world states, this chapter focuses on discriminative methods for regression. It began by introducing a simple linear model for a univariate continuous world state $w$ and continuous multivariate vector $\mathbf{x}$:
+ \[
+ 	\text{Pr}(\mathbf{w}|\mathbf{X}, \phi) = \text{Norm}_w[\mathbf{X}^T \phi, \sigma^2]
+ \]
+ Where $\mathbf{X}$ is a $D \times I$ matrix of $I$ examples, each of $D$ dimensions. In other words, we assume that the mean response is a linear function of the inputs $\mathbf{x}$, with constant variance. The model's parameters can be fit using maximum likelihood, maximum a posteriori, or bayesian analysis. The ML estimate of the parameters is:
+ \begin{gather*}
+ 	\phi = (\mathbf{X}\mathbf{X}^T)^{-1}\mathbf{X}^T \mathbf{w}\\[1em]
+ 	\sigma^2 = \frac{(\mathbf{w} - \mathbf{X}^T\phi)^T(\mathbf{w} - \mathbf{X}^T\phi)}{I} 
+ \end{gather*}
+Notice that here the likelihood being maximized is $\text{Pr}(w|x, \theta)$, whereas when fitting the generative methods we maximized the likelihood $\text{Pr}(x|w, \theta)$.
+
+Several flaws in the simple linear model were pointed out:
+\begin{itemize}
+	\item There is no embedded representation of the uncertainty associated with extrapolation - the model is as confident where there have been many observations as it is where there are none.
+	\item A linear function may not be representative of the true relationship between the inputs and mean response.
+	\item Many of the input features may be redundant or of little predictive power, but will be assigned tiny coefficients upon fitting the model - this makes the model needlessly complex.
+\end{itemize}
+To represent the uncertainty in the model's coefficients more accurately, we can model the parameters as normally distributed variables:
+\[
+	\text{Pr}(\phi) = \text{Norm}_{\phi}[\mathbf{0}, \sigma_p^2]
+\]
+Where $\sigma_p^2$ is a hyperparameter (we'd usually fix it to a large value to represent our initial uncertainty). Then, when fitting the model, we can use Bayesian analysis rather than maximum likelihood:
+\[
+	\text{Pr}(\phi|\mathbf{X}, \mathbf{w}) = \frac{\text{Pr}(\mathbf{w}|\mathbf{X}, \phi)\cdot \text{Pr}(\phi)}{\text{Pr}(\mathbf{w}|\mathbf{X})}
+\]
+This yields a normal posterior distribution over the parameter values with a covariance that increases with $\mathbf{x}$. To make predictions using this distribution, compute the posterior predictive and evaluate its value at the query world state and data.
+
+Several matrix identities were introduced in this section with the intention of making matrix inverse calculations less expensive. One of these was the Sherman-Morrison-Woodbury identity, which can be used to speed up posterior and posterior predictive inference in the aforementioned Bayesian model.
+
+To work around the issue that the expected response and the inputs are unlikely to have a linear relationship, the model was generalized to nonlinear functions in neat way: simply replace the raw input vector $\mathbf{x}$ with its value under nonlinear transformation:
+\[
+	\mathbf{z} = \mathbf{f}[\mathbf{x}]
+\]
+Then model the relationship between the world state and input as a linear one:
+\[
+	\text{Pr}(\mathbf{w}|\mathbf{Z}, \phi) = \text{Norm}_{\mathbf{w}}(\mathbf{Z}^T\phi, \sigma^2)
+\]
+Apply the equivalent versions of the ML estimates or the Bayesian analysis methods mentioned earlier to determine the parameters, then evaluate this epression at a new query for inference. The parameters of the nonlinear functions can be defined beforehand, or they can be fit. To fit them, we need to marginalize the above equation over $\phi$:
+\[
+	\text{Pr}(\mathbf{w}|\mathbf{Z}) = \int \text{Pr}(\mathbf{w}|\mathbf{Z}, \phi)\cdot\text{Pr}(\mathbf{\phi})\cdot d\phi
+\]
+We can then maximize this - the evidence - again the nonlinear function's parameters $\mathbf{\lambda}$:
+\[
+	\hat{\mathbf{\lambda}} = \argmax_{\mathbf{\lambda}} [\text{Pr}(\mathbf{w}|\mathbf{Z})]
+\]
+Use a nonlinear optimization procedure (i.e. local search with multiple instantiations, global search) to solve this.
+
+If $\mathbf{z}$ is very high-dimensional, we can replace the dot products $\mathbf{z}_i^T\mathbf{z}_j$ in the ML and Bayesian models with the kernel function $k[\mathbf{x}_i, \mathbf{x}_j]$. 
+
+The final area that I began to work on was sparse linear regression, which pushes coefficient values towards zero. By using prior distributions that favour zero-valued coefficients, it's possible to do exactly this.
+
+
+ \labday{Tuesday, 27th June 2017}
+ Today I would like to:
+ \begin{itemize}
+ 	\item Summarize yesterday's work
+ 	\item Finish the Ch. 8 of \emph{Computer Vision} (2 hours)
+ 	\item Build at least one of the regression models described in this chapter (2 hours)
+ 	\item Spend two hours on the Tensorflow lectures (2 hours)
+ 	\item Spend four hours on the PV panel classifier: (4 hours)
+ 	\begin{itemize}
+ 		\item Fix the augmenter balance.
+ 		\item Augment undamaged panels.
+ 		\item Build a gradient descriptor.
+ 		\item Document progress so far.
+ 	\end{itemize}
+ 	\item Print and read GAN papers
+ \end{itemize}
+ 
+ \experiment{Summary}
+ (07:00 - 08:00) Summarized yesterday's work.
+ 
 \end{document}
  
