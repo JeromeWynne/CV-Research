@@ -866,6 +866,37 @@ The final area that I began to work on was sparse linear regression, which pushe
  
  \experiment{Summary}
  (07:00 - 08:00) Summarized yesterday's work.
+ (08:00 - 11:00) Sparse regression, dual linear regression. 
  
+ Dual linear regression expresses the gradient vector in terms of the training data points. It's appropriate for situations in which the data has many more dimensions than examples.
+ 
+  Sparse linear regression places a t-distributed prior on each of the gradient values to represent the fact that many of the gradient elements may not be useful in predicting the response. To fit the mean and variance of the parameter vector of the sparse regression model, it is necessary to maximize an approximation of the likelihood function. To make this approximation, a function must be maximized with respect to the hidden variables of the t-distributions. In reality, the likelihood function and the parameters that maximize it are optimized simultaneously.
+ 
+  Relevance vector regression combines the principles of sparse and dual linear regression to produce an efficient regressor: a prior is placed on each element of the dual vector (which correspond to weightings of each observation) that pushes it towards zero, then the mean and variance of this dual vector's posterior is computed while simultaneously approximating the likelihood function by maximizing a function w.r.t. the t-distribution's hidden variables. Relevance vector machines describe predictive models to be described in terms of just a few datapoints, as opposed to attempting to weight high-dimensional input vectors or use all of the datapoints available (which makes optimization expensive).
+
+(11:00 - 13:00) Swept the steps. Took Lunch.
+
+(13:00 -14:00) Bio for The Bakery.
+
+(14:00 - 15:00) More on sparse linear regression. I've found it quite difficult to grasp, and still feel as though I'm missing something. Say we have a linear model:
+\[
+	\text{Pr}(w|X, \sigma^2, \phi) = \text{Normal}_{w}[X^T\phi, \sigma^2 I]
+\]
+$X$ is a $D \times I$ matrix of inputs, $\sigma^2$ is common variance, $w$ is a vector of $I$ responses. A non-sparse Bayesian linear model would assume a normal prior distribution $\text{Norm}_\phi[\mathbf{0}, \sigma_p^2]$ over the weights, where $\sigma_p^2$ is large. In combination with the normal likelihood above, this would yield a normal posterior distribution:
+\[
+	\text{Pr}(\phi|w, X, \sigma^2) = \frac{\text{Pr}(w|X, \phi, \sigma^2)\cdot\text{Pr}(\phi)}{\text{Pr}(w|X, \sigma^2)}
+\]
+Since the posterior and the likelihood were normal, the posterior predictive had a closed-form solution (yet another normal distribution). It was also possible to compute the posterior directly.
+
+In a sparse linear model, the prior term is adjusted to weight zero-valued elements of $\phi$ more heavily. The purpose of this is to identify input that have little predictive value. This is achieved using a multivariate $t$-distribution:
+\[
+	\text{Pr}(\phi) = \prod_{d = 1}^{D} \text{Stud}_{\phi_d}[0, 1, \nu]
+\]
+Problematically, this means that there is no analytical expression for the posterior distribution over the weights $\phi$. We still need an expression for this posterior, however, to be able to express the posterior predictive distribution. The book asserts that we can estimate the parameters $\mu$, $\Sigma$ of a normal distribution that approximates the weight's true posterior by maximizing an approximation to the model's evidence, $\text{Pr}(w|X, \sigma^2)$, with respect to the t-distribution's hidden variables and the model's common variance $\sigma^2$. I am puzzled about:
+\begin{itemize}
+	\item[(a)] Where the normal posterior came from to approximate the product of a normal and t-distribution.
+	\item[(b)] How the values for the hidden variables influence the choice of weights.
+\end{itemize}
+The former point I think I can appreciate in an unrigorous sense, but the latter needs more thought. The hidden variables of the t-distribution affects the distribution's variance - smaller values of $h_d$ suggest a larger variance, further implying a more probable non-zero value for $\phi_d$. So the idea with solving for values of the hidden variables is to stretch the prior in the directions that are likely to have non-zero values. By contrast, $\sigma^2$ has to be updated alongside the hidden variables because when the uncertainty in the values of the hidden variables changes, so too will the uncertainty in the response. I think I'm getting closer with this - maybe a few more readings...
 \end{document}
  
