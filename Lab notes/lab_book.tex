@@ -898,5 +898,63 @@ Problematically, this means that there is no analytical expression for the poste
 	\item[(b)] How the values for the hidden variables influence the choice of weights.
 \end{itemize}
 The former point I think I can appreciate in an unrigorous sense, but the latter needs more thought. The hidden variables of the t-distribution affects the distribution's variance - smaller values of $h_d$ suggest a larger variance, further implying a more probable non-zero value for $\phi_d$. So the idea with solving for values of the hidden variables is to stretch the prior in the directions that are likely to have non-zero values. By contrast, $\sigma^2$ has to be updated alongside the hidden variables because when the uncertainty in the values of the hidden variables changes, so too will the uncertainty in the response. I think I'm getting closer with this - maybe a few more readings...
+
+(15:00 - 16:15) Wrote the above on sparse regression. Replied to John Ryan.
+
+(16:15 - 17:50) Built a dual regression model on Iris dataset.
+\begin{figure}[h!]
+\centering
+\includegraphics[width=0.8\textwidth]{dual_linear_regression.pdf}
+\end{figure}
+
+(17:50 - 19:45) Built a Gaussian nonlinear regression model.
+\begin{figure}[h!]
+\centering
+\includegraphics[width=0.8\textwidth]{nonlinear_regression.pdf}
+\end{figure}
+
+
+
+\labday{Wednesday, 28th June 2017}
+Yesterday I built a nonlinear regression model and a dual linear regression model. 
+
+The nonlinear model has a simple premise - perform a nonlinear transformation of the inputs, then perform a linear regression of the transformed inputs onto the response. Kernels can be used to make this process much more efficient/feasible.
+
+The dual model assumes that the gradient vector is in the subspace described by the observations. It's useful when the dimensionality of the data exceeds the number of observations. In such a situation, linear regression is not possible since its model would be under-constrained. Why is it valid to assume that the gradient vector lies in the subspace described by the observations? In short, the assumption is justified by the observation that if input variation is not observed in a given direction, then there is no information available that can be used to compute a gradient in that direction.
+
+
+(09:30 - 12:30) \emph{Convex Optimization} Lecture 2 - convex sets.
+
+(13:45 - ) Tensorflow work.
+
+\experiment{Boyd, \emph{Convex Optimisation} (Lecture 2)}
+The lecture covered various basic types of convex sets, and operations that preserve convexity. Simple convex sets that he brought up included:
+\begin{itemize}
+	\item The basic convex set: $S : \{x_1, x_2|\theta x_1 + (1 - \theta)x_2 \in S, \theta \in [0, 1]\}$
+	\item Affine sets: $\{x | \theta x_1 + (1 - \theta)x_2, \theta \in \mathbb{R}\}$
+	\item Hyperplanes: constraints on single elements from an affine set; $\{x | a^t x = b, a \in \mathbb{R}^n, b \in \mathbb{R}\}$
+	\item Convex hulls: the set of all convex combinations of points in a set: $x = \theta_1 x_1 + ... + \theta_k x_k$ with $\sum \theta = 1, \theta_i \geq 0 \ \forall \ i$.
+	\item Halfspaces: like a hyperplane, but with an inequality. $\{x | a^T x \leq b\}$.
+	\item Convex cones: any linear combination of two points, provided that the coefficients are positive. $C : \{x|x = \theta_1 x_1 + \theta_2 x_2, \quad \theta_1, \theta_2 \geq 0\}$
+	\item Euclidean balls and ellipsoids (linear transformations of a unit ball). $\{x | (x - x_c)P^{-1}(x - x_c) \leq 1\} = \{x_c + Au | \|u\|_2 \leq 1\}$. A euclidean ball is the set of points that satisfy $\{x| \|x - x_c\|_2 \leq r\}$. We also defined a norm as a function that satisfies various conditions.
+	\item Polyhedra: A set of points satisfying finitely many inequalities (halfspaces) and equalities (hyperplanes). $\{x|Ax \preceq b, Cx = d\}$.
+\end{itemize}
+He emphasized that these basic convex sets in combination with convexity-preserving operations are useful for demonstrating a set's convexity. Alternatively, we can use the basic definition of convexity to show that a set is convex.
+
+The second half of the lecture focused on these convexity-preserving operations, which were the:
+\begin{itemize}
+	\item Intersection
+	\item Affine function
+	\item Perspective function - the division of the first $n$ elements in a vector by the vector's $n$th and final element.
+	\[
+		P(x, t) = \frac{x}{t}, \quad \text{dom}P = \{(x, t)|t > 0\}
+	\]
+	\item Linear-fractional function - the perspective function after an affine transformation.
+	\[
+		f(x) = \frac{Ax + b}{c^T x + d}, \quad \text{dom}f = \{x|c^T x + d > 0\}
+	\]
+\end{itemize}
+
+
 \end{document}
  
