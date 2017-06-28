@@ -925,7 +925,15 @@ The dual model assumes that the gradient vector is in the subspace described by 
 
 (09:30 - 12:30) \emph{Convex Optimization} Lecture 2 - convex sets.
 
-(13:45 - ) Tensorflow work.
+(13:45 - 17:30) Tensorflow work. Moved from the logistic regression model to neural networks by introducing nonlinear transfer functions (specifically, RELUs). Built a two-layer network for 10-way classification. Understood the TensorFlow workflow: set up a graph, pass the graph to a session. Reviewed stochastic and minibatch gradient descent, momentum (taking a running average of the loss gradient and using it to choose the direction of optimization for the current iteration), l2 regularization (penalizing  large weights - why?), dropout (to encourage redundancy in the network), learning rate decay (to permit better overall convergence), and early termination (to avoid overfitting).
+
+
+(19:00 - 21:15) Prince, \emph{Computer Vision} (Ch. 9, Classification models). Logistic regression, Newton's method for making an ML fit of its parameters. Laplace approximation for a distribution. Integrating a multivariate normal distribution over one dimension instead of many via a linear projection. Highlighted the weaknesses of logistic regression:
+\begin{itemize}
+\item Using maximum likelihood to fit the parameters whitewashes the actual uncertainty in a class prediction (resolved via Bayesian logistic regression).
+\item Linear decision boundaries are sometimes inadequate.
+\item The model is expensive to fit in many dimensions, and is prone to overfitting in wide situations.
+\end{itemize}
 
 \experiment{Boyd, \emph{Convex Optimisation} (Lecture 2)}
 The lecture covered various basic types of convex sets, and operations that preserve convexity. Simple convex sets that he brought up included:
