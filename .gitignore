@@ -5,5 +5,5 @@
 *.synctex.gz
 *.toc
 *.png
-*/Tensorflow/*
-*/data/*
+Tensorflow/
+data
