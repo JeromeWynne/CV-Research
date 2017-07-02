@@ -4,3 +4,6 @@
 *.out
 *.synctex.gz
 *.toc
+*.png
+*/Tensorflow/*
+*/data/*
