@@ -6,4 +6,5 @@
 *.toc
 *.png
 Tensorflow/
-data
+data/
+Tools/
