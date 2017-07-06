@@ -1063,7 +1063,7 @@ Topics of conversation:
 
 
 \labday{Tuesday, 4th July 2017}
-(07:30 - 11:00) Finished Tensorflow assigment. Emailed Mikkel Sou requesting Azure access.
+(07:30 - 11:00) Finished Tensorflow assigment. Emailed Mikkel Skou requesting Azure access.
 (11:30 - 12:00) Skype call with ET and RD w.r.t. Azure access. Learnt how to save/restore sessions in TensorFlow.
 (12:15 - 13:15) Conceived of probabilistic relaxation method. Figuring out details.
 (13:45 - 15:00) Meeting with James and ET at DNV w.r.t. image processing. They recommend vastly expanding the feature space, possibly focusing on cracks located at the edges.
@@ -1072,7 +1072,7 @@ Topics of conversation:
 
 
 \labday{Wednesday, 5th July 2017}
-Tomorrow I will:
+Today I plan to:
 \begin{itemize}
 	\item Build the probabilistic relaxation model.
 	\item Generate at least ten sets of candidate extracted features.
@@ -1080,8 +1080,36 @@ Tomorrow I will:
 	\item Read at least two papers.
 	\item Finish \emph{Convex Optimisation} lecture 2.
 	\item Understand the singular value decomposition.
+	\item Summarize last weeks work (or lack thereof!)
 \end{itemize}
 Stay hungry, stay foolish.
+
+(06:20 - 19:15) Built a generative normal model of crack/uncracked pixels. Fit a random forest to the resulting probabilities. Built lots of filters.
+(19:15 - 20:30) Printed three papers at the University - Hough transform, probabilistic relaxation, and hidden markov models for crack detection.
+(20:30 - 22:30) Read the Hough transform paper. Will summarize tomorrow when I wake up.
+
+
+\labday{Thursday, 6th July 2017}
+Good morning - it's 06:50. Yesterday I experimented with various convolutional filters, some of which were moderately successful. I also read a paper on the Hough (`how') transform, \emph{Use of the Hough Transformation to Detect Lines and Curves in Pictures} by Ruchard Duda and Peter Hart. The Hough transform is used to detect colinear points in an image.
+
+\experiment{\emph{Use of the Hough Transform to Detect Lines and Curves in Pictures}}
+ The idea of the Hough transform is to map a point at $(x, y)$ in the figure domain onto a plane parameterized by $(\rho, \theta)$. $\theta$ corresponds to the angle between the plane and the origin and $\rho$ is the distance of the plane from said origin. The unit normal vector of the plane is $[\cos\theta, \sin\theta]$, such that the points $(x, y)$ are projected onto a line at an angle $\theta$ to the origin by:
+\[
+	\rho = x\cos\theta + y\sin\theta 
+\]
+. If $\theta$ and are $\rho$ are chosen correctly, then a colinear set of points in the figure will be projected onto a single point in the $\rho-\theta$ plane. In this way then, $\rho$ encodes the detected line's distance from the origin and $\theta$ the angle it makes with the $y$-axis. For the implementation:
+\begin{enumerate}
+\item Binarize the image.
+\item Create a matrix with rows indexed by quantized values of  $\rho \in [0, R]$ and columns indexed by quantized values $\theta \in [0, \pi)$.
+\item Project the points onto a vector that makes an angle $\theta \in [0, \pi)$ with the origin, then count the number of projected points that lie in each radial interval. Record this number in the matrix cells corresponding to the given angle and radial intervals.
+\item Repeat (3) for all angles. The sum of each column will be equal to the total number of points.
+\item Cells that have an unusually high number of points will tend to correspond to lines in the image.
+\end{enumerate}
+The Hough transform comes with a few warnings attached - high-scoring cells don't necessarily correspond to contiguous lines, the chosen resolution of cells has big implications for the method's efficacy, and careful thought needs to be given about the number of pixels in the lines of interest. The method can be generalized to other parameterizations beyond straight lines: All that's necessary is to parameterize a curve using the $x, y$ values. In general, points in $(x,y)$ on the geometry described by a function $f(\phi_1, ..., \phi_p)$ will map to single point in the space $\phi_1, ..., \phi_p$. By discretizing the values of $\phi$ and binning the positions of the points, it is possible to detect an arbitrary geometry. A parabola in $(x, y)$, for example, would be parameterized by:
+\[
+	(x - a)^2 + y^2 = b
+\]
+
 
 
 \end{document}
