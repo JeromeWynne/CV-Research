@@ -8,4 +8,5 @@
 Tensorflow/
 data/
 Tools/
-*/Report/images/*
+.ipynb_checkpoints/
+images/
