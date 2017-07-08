@@ -1188,7 +1188,43 @@ Configuring an instance with Jupyter notebooks.
 	\item Use the shell's \texttt{screen} command to create multiple shell screens before launching the notebook.
 \end{itemize}
 
-(12:30 - ) Building PV panel convnet and adding it to the report.
+(12:30 - 17:20) Building PV panel convnet and adding it to the report.
+
+Instance setup:
+\begin{enumerate}
+	\item Launch Ubuntu P2 instance (i.e. an instance with a Nvidia card).
+	\item Install Anaconda 3+
+	\item Install CUDA Toolkit and drivers:
+	\begin{itemize}
+	\item Install gcc (GNU compiler collection, the compiler that CUDA uses)
+	\item Install kernel headers and development packages for the running version of the kernel (these are required by the CUDA Driver).
+	\item The CUDA Toolkit can be installed using either a [Linux] distribution-specific package, or a [Linux] distribution-independent package. Download and install the Nvidia CUDA Toolkit - this contains the CUDA driver and tools needed to create, build and run a CUDA application. USE THE .DEB INSTALL - THE OTHER ONE GAVE US TROUBLE. This is installed via the package manager, not the runfile.
+	\item Post-installation mandatory actions: add the CUDA \texttt{bin} directory to the \texttt{PATH} variable.
+	\item To verify the installation, install the samples with write permissions using the convenience script.
+	\item \texttt{nvcc} command compiles CUDA programmes. It calls \texttt{gcc} in the process. \texttt{nvcc -V} checks the CUDA Toolkit version.
+	\item Calling \texttt{make} in the same directory as the CUDA samples compiles them using nvcc. The resulting executables are in the \texttt{bin} file. To run these, use \texttt{./<exe>}. Use \texttt{./deviceQuery} after compilation to check that the Nvidia GPU is recognised by CUDA.
+	\end{itemize}
+	\item Install the NVIDIA cuDNN library. Download the zip file locally, then upload it to the instance using SCP. Extract and copy its contents into the CUDA install directory as per these instructions (https://askubuntu.com/questions/767269/how-can-i-install-cudnn-on-ubuntu-16-04).
+	\item  Install libcupti-dev (NVIDIA CUDA Profile Tools Interface).
+	\item Create a conda environment for tensorflow (\texttt{conda create -n tensorflow}).
+	\item Activate the environment \texttt{source activate tensorflow}.
+	\item Install the appropriate version of TensorFlow using \texttt{pip install --ignore-installed --upgrade tfBinaryURL} where tfBinaryURL is the link for the suitable TF version for the Python version and GPU/CPU mode.
+	\item Validate the TensorFlow installation.
+	\item Check where CUDA installed using \texttt{which nvcc}
+	\item Add PATH variables to \texttt{~/.bashrc} as per \texttt{https://stackoverflow.com/questions/41991101/importerror-libcudnn-when-running-a-tensorflow-program}.
+	\item Run \texttt{python} in the shell and \texttt{import tensorflow as tf}.
+\end{enumerate}
+Installing software on Ubuntu - use \texttt{sudo dpkg -i /path/to/deb/}.
+
+I also learnt how to attach an EBS volume to an AWS instance. \texttt{lsblk} lists the available disks and where they are mounted. Format the filesystem using \texttt{sudo file -s /dev/xvdb}. To mount the volume to a specific directory, use \texttt{sudo mount /dev/xvdb /<dir>}. \texttt{df} shows the storage available. Note that on reboot EBS volumes are unmounted.
+
+(19:00 - 21:00) ResNet paper. Essential idea: preventing degradation in really deep nets by fitting stacks of layers to a residual of the target mapping then summing with the stack input. The idea is that
+\begin{itemize}
+	\item If the previous layers have already approximated the overall target mapping then the surplus layers can easily push their outputs to zero, leaving only the identity to be passed forward.
+	\item Layers will tend to generate filters that are closer to an identity mapping than a zero mapping. Using residual layers initializes them closer to their targets.
+\end{itemize}
+i.e. rather than modeling a target mapping $\mathcal{H}(\mathbf{x})$, we model the mapping $\mathcal{F}(\mathbf{x}) = \mathcal{H}(\mathbf{x}) - \mathbf{x}$ (i.e. the residual mapping). The identity mapping is $I : I(\mathbf{x}) = \mathbf{x}$, where $\mathbf{x}$ is the input to the stack of layers. The paper was by a team from Microsoft's research division.
+
 
 \end{document}
  
