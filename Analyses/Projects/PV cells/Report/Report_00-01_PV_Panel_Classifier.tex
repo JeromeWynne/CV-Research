@@ -8,6 +8,7 @@
 
 \usepackage[utf8]{inputenc} % set input encoding (not needed with XeLaTeX)
 \usepackage{graphicx}
+\usepackage{subcaption}
 \graphicspath{{./images/}}
 
 %%% Examples of Article customizations
@@ -30,7 +31,6 @@
 \usepackage{array} % for better arrays (eg matrices) in maths
 \usepackage{paralist} % very flexible & customisable lists (eg. enumerate/itemize, etc.)
 \usepackage{verbatim} % adds environment for commenting out blocks of text & for better verbatim
-\usepackage{subfig} % make it possible to include more than one captioned figure/table in a single float
 % These packages are all incorporated in the memoir class to one degree or another...
 
 %%% HEADERS & FOOTERS
@@ -65,20 +65,20 @@
 
 \section{Problem Description}
 
-This work developed a system for automatically identifying cracks in PV panels from their 2D grayscale computed tomography images. A sample of five images in shown in Figure \ref{fig:sample_panels}.
+This work developed a system for automatically identifying cracks in PV panels from their 2D grayscale computed tomography images. 50 images were provided, of which 38 were deemed to be cracked. Several of these images are shown in Figure \ref{fig:sample_panels}.
 \begin{figure}[h!]
 \includegraphics[width=\textwidth]{sample_panels.pdf}
 \caption{Scans of the PV panels that were analyzed for damage. The first, third, fourth, and fifth panels from the left contain cracks. Pock-marks similar to those seen on the first panel were not regarded as cracks.}
 \label{fig:sample_panels}
 \end{figure}
-50 images were provided, of which 38 were deemed to be cracked. The median frame height for these images was 965 pixels; their width was similar.
+ The median frame height for these images was 965 pixels; their width was similar.
 
  The criteria for labelling a given mark as a crack were as follows:
 \begin{itemize}
 	\item A dark line propagating diagonally for at least 50 pixels
 	\item Was no more than 15 pixels in width (transverse to crack axis, see Figure \ref{fig:crack_width}
 \end{itemize}
-As can be seen in Figure \ref{fig:crack_v_scratch}, it was sometimes difficult to ascertain whether a given mark was a crack or a scratch. For the purposes of this work, the latter were considered to be fainter and wigglier - heuristic measures in the absence of any conveniently quantifiable differences. The labels themselves consisted of manually drawn binary masks, an example of which is shown in Figure \ref{fig:mask_example}. Each pixel in a mask was in effect indicators representing whether the associated image pixel was part of a crack. To mitigate the poor localization performance of certain filters at the processing stage, cracked areas were labelled generously. The masks were validated by a panel inspector.
+As can be seen in Figure \ref{fig:crack_v_scratch}, it was sometimes difficult to ascertain whether a given mark was a crack or a scratch. For the purposes of this work, the latter were considered to be fainter and wigglier - heuristic measures in the absence of any conveniently quantifiable differences. The labels themselves consisted of manually drawn binary masks, an example of which is shown in Figure \ref{fig:mask_example}. Each pixel in a mask was in effect indicators representing whether the associated image pixel was part of a crack. The masks were validated by a panel inspector. The centers of thick cracks were not labelled on the basis that they were too similar to other dark regions in the images (such as the vertical and horizontal bars).
 
 \begin{figure}[h!]
 \includegraphics{crack_width.pdf}
@@ -99,7 +99,48 @@ Desirable properties of this sytem
 \label{fig:mask_example}
 \end{figure}
 
-\subsection{Data Pre-Processing}
+\subsection{Pre-Processing}
+Various filters were applied to the images in an attempt to emphasize cracks or suppress other features.
 
+The most successful was as follows:
+\begin{enumerate}
+	\item Invert.
+	\item Vertical Sobel filter.
+	\item Gabor filter differencing.
+\end{enumerate}
+\begin{figure}
+\centering
+  	 \begin{subfigure}[b]{1\textwidth}
+   	\includegraphics[width=\textwidth]{demo_images.pdf}
+   	\caption{Raw images.}
+   	\label{fig:b} 
+	\end{subfigure}
+
+  	 \begin{subfigure}[b]{1\textwidth}
+   	\includegraphics[width=\textwidth]{sobelv.pdf}
+   	\caption{Vertical Sobel filter.}
+   	\label{fig:b} 
+	\end{subfigure}
+	
+  	 \begin{subfigure}[b]{1\textwidth}
+   	\includegraphics[width=\textwidth]{sobelv_gaborne.pdf}
+   	\caption{Vertical Sobel filtering followed by a Gabor filter.}
+   	\label{fig:d} 
+	\end{subfigure}
+	
+	
+  	 \begin{subfigure}[b]{1\textwidth}
+   	\includegraphics[width=\textwidth]{sobelv_gabordiff.pdf}
+   	\caption{Vertical Sobel filtering followed by a difference of two Gabor-filtered images.}
+   	\label{fig:f} 
+	\end{subfigure}
+	
+	\begin{subfigure}[b]{1\textwidth}
+   	\includegraphics[width=\textwidth]{demo_masks.pdf}
+   	\caption{Original image masks (i.e. ground truth).}
+   	\label{fig:f} 
+	\end{subfigure}
+\caption{}
+\end{figure}
 
 \end{document}

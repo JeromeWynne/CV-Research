@@ -1110,7 +1110,85 @@ The Hough transform comes with a few warnings attached - high-scoring cells don'
 	(x - a)^2 + y^2 = b
 \]
 
+Worked on filters until 12:00.
 
+
+\experiment{\emph{Relaxation labelling algorithms - a review}, Kittler and Illingworth}
+
+Relaxation labeling attempts to assign labels (discrete or probabilistic) to nodes $a_i$ in a graph based on measurements of those nodes $X_i$ and information about the surrounding nodes' labels. The set of possible labels each node are membes of the set $\Lambda = \{\lambda_1, ..., \lambda_m\}$. The contextual information conveyed by one node's label about another node's label is expressed using compatibility coefficients:
+\[
+	r(\theta_i = \lambda_l, \theta_j = \lambda_k)
+\]
+These coefficients are weighted by the neighbouring node's label probabilites to form a scoring function for a particular label at a given node. Assuming initial probabilities that the nodes have a given label, $\text{Pr}^s(\theta_j = \lambda_k)$:
+\[
+	q^s_j(\theta_i = \lambda_l) = \sum_{k = 1}^m r(\theta_i = \lambda_l, \theta_j = \lambda_k) \cdot \text{Pr}^s(\theta_j = \lambda_k)
+\]
+This expression is known as the support provided by node $a_j$ in favour of assigning the label $\lambda_l$ to node $a_i$- it is the sum of the compatibilities of the possible labels for $a_j$ with the label $\lambda_l$ for $a_i$, with each term weighted by the corresponding probability for $a_j$'s label.
+
+The overall support in favour of assigning the label $\lambda_l$ to node $a_i$ on step $s$ is the sum of its support over the entire network. Because some nodes - such as those closer to $a_i$ - convey more information about what $a_i$'s label is, the support provided by each network is weighted by coefficients $C_{ij}$:
+\[
+	Q^s(\theta_i = \lambda_l) = \sum_{j=1}^N C_{ij} \sum_{k = 1}^m r(\theta_i = \lambda_l, \theta_j = \lambda_k) \cdot \text{Pr}^s(\theta_j = \lambda_k)
+\]
+The coefficients sum to 1.
+
+To update the proability that a node has a particular label, we consider what fraction of the overall support is attributable to the label:
+\[
+	\text{Pr}^{s+1}(\theta_i = \lambda_l) = \text{Pr}^s(\theta_i = \lambda_l)\cdot\frac{Q^s(\theta_i = \lambda_l)}{\sum_{k=1}^m \text{Pr}^{s}(\theta_i = \lambda_k)\cdot Q^s(\theta_i = \lambda_k)}
+\]
+The initialization probabilities for this framework can be estimated according to a classifier of the form:
+\[
+	\text{Pr}^0(\theta_i = \lambda_l) = \text{Pr}(\theta_i = \lambda_l | X_i)
+\]
+
+It seems that most controversy lies in the choice of compatibility function $r(\theta_i = \lambda_l, \theta_j = \lambda_k)$ and the support function $q_j(\theta_i = \lambda_l)$. Supposedly its preferable to use the geometric mean as opposed to the expectation of the compatiblities. I.e.:
+\[
+	q_j(\theta_i = \lambda_l) = 
+\]
+
+
+\labday{Friday, 7th July 2017}
+
+I spent the morning (07:00 - 09:00) setting up AWS instances and becoming familiar with its console. From 10:10 I was in Queens working on the PV Panel assignment. Specifically, I was writing up its report. Doing so spurred me to relabel the training data.
+From 14:10 onwards I read about various ways of representing images. I read a paper on the Gabor filter and a paper on detecting cracks in eggs. The cracked-egg detector was quite simple, but (apparently) effective - it consisted of a subtraction, segmentation, then contour detection. This evening I plan to build the ConvNet for the TensorFlow assignment. I did indeed, and will write about it tomorrow morning.
+
+\labday{Saturday, 8th July 2017}
+Registered for British Machine Vision conference 2017. The workshop  is being held from the 4th until the 7th of September in London. The workshops are on:
+\begin{itemize}
+	\item Activity monitoring by Multiple Distributed Sensing (Pier Mazzeo, Paolo Spagnolo)
+	\item Deep Learning on Irregular Domains (Xianghua Xie, Michael Edward)
+	\item Lip-reading using Deep Learning Methods (Themos Stafylakis)
+	\item Automatic Face Analytics for Human Behaviour Understanding (Xiaohua Huang)
+\end{itemize}
+The keynote speakers are Richard Szeliski (Facebook) and Pietro Perona (Caltech). Tutorial speakers are Michael Bronstein, Lourdes Agapito, Shimon Whiteson, Andreas Geiger. Workshop keynot is by Jamie Shotton from the Hololens team at Microsoft.
+
+(08:00 - 10:00) Working on TensorFlow convnet. Trialled a P2 AWS instance.
+
+(10:30 - 12:10) CVX lecture 2 notes. Proper cones, generalized inequalities, separating and supporting hyperplanes, minimum and minimal points in a set, dual cones.
+
+Configuring an instance with Jupyter notebooks.
+\begin{itemize}
+	\item Create a config profile \texttt{jupter notebook --generate-config}
+	\item Create a security key in a sensible location (i.e. a directory) using 
+	\begin{itemize}
+	\item[] \texttt{sudo openssl req -x509 -nodes -days 365 -newkey rsa:1024 -keyout mycert.pem -out mycert.pem}
+	\end{itemize}
+	\item Go to \texttt{~/.jupyter} and edit the config file.
+	\item[]
+	\begin{itemize}
+	\item[] \texttt{c = get\_config() \# Kernel configuration object}
+	\item[] \texttt{c.IPKernelApp.pylab = 'inline' } 
+	\item[] \texttt{c.NotebookApp.certfile = u'/home/ubuntu/certs/mycert.pem'}
+	\item[] \texttt{c.NotebookApp.ip = '*' }
+	\item[] \texttt{c.NotebookApp.open\_browser = False  }
+	\item[] \texttt{c.NotebookApp.port = 8888 \# fixed, known port}
+	\end{itemize}
+	\item Make sure the instance's security group allows TCP access to port 8888.
+	\item Connect to the instance at the the server's DNS path using HTTPS, with the port specified at the URL's end after a colon.
+	\item Get the token from the instance via \texttt{jupyter notebook list}.
+	\item Use the shell's \texttt{screen} command to create multiple shell screens before launching the notebook.
+\end{itemize}
+
+(12:30 - ) Building PV panel convnet and adding it to the report.
 
 \end{document}
  
