@@ -1225,6 +1225,31 @@ I also learnt how to attach an EBS volume to an AWS instance. \texttt{lsblk} lis
 \end{itemize}
 i.e. rather than modeling a target mapping $\mathcal{H}(\mathbf{x})$, we model the mapping $\mathcal{F}(\mathbf{x}) = \mathcal{H}(\mathbf{x}) - \mathbf{x}$ (i.e. the residual mapping). The identity mapping is $I : I(\mathbf{x}) = \mathbf{x}$, where $\mathbf{x}$ is the input to the stack of layers. The paper was by a team from Microsoft's research division.
 
+Spaced repetition came up this afternoon during random reading - 3, 10, 30, 60 days.
+
+Tomorrow I will:
+\begin{itemize}
+	\item Build the PV panel convnet I planned to build today.
+	\item Review the chapters of Prince, \emph{Computer Vision} that I have been through so far.
+	\item Complete the homework from \emph{Convex Optimization}.
+\end{itemize}
+
+
+
+\labday{Sunday, 9th July 2017}.
+I finished reading the ResNet paper, \emph{Deep Residual Learning for Image Recognition}, over  breakfast. They trialled a 1000+ layer network against the CIFAR-10 dataset. Their ultimate best performance was achieved using an ensemble of six networks, each of different depths. To analyze the network, the team charted the standard deviation of each layer's responses (assumedly across all images in the training set). They claimed that the smaller responses supported their hypothesis that the residual layers would tend to be closer to zero than non-residual responses.
+
+There were several papers referenced that caugt my eye:
+\begin{itemize}
+	\item\emph{Understanding the difficulty of training deep feedforward neural networks}, Bengio et. al (Vanishing gradients and normalized initialization).
+	\item \emph{Maxout networks}, Bengio, Goodfellow et. al (Maxout).
+	\item \emph{Delving deep into rectifiers: Surpassing human-level performance on imagenet classification.}, He and Zhang (Weight initialization).
+	\item \emph{Batch normalization: Accelerating deep network training by reducing internal covariate shift.}, Ioffe and Szegedy (Batch normalization).
+	\item \emph{Product quantization for nearest-neighbor search}, Schmid, Douze, Jegou. (Vector quantization)
+	\item \emph{Imagenet classifiation with deep conolutional neural networks}, Krizhevsky, Sutskever, Hinton. (AlexNet)
+	\item \emph{Very deep convolutional networks for large-scale image recognition}, Simonyan and Zisserman (VGG)
+	\item \emph{Visualizing and understanding convolutional neural networks}, Zeiler and Fergus.
+\end{itemize}
 
 \end{document}
  
