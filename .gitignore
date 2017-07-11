@@ -7,6 +7,7 @@
 *.png
 Tensorflow/
 data/
+tmp/
 Tools/
 .ipynb_checkpoints/
 images/
