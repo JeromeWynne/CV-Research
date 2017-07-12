@@ -8,7 +8,17 @@ import tensorflow as tf
 import numpy as np
 
 """ Module functions """
-# > split_images
+# > split_images        - performs a stratified split of a dataset of images and label masks.
+# > minibatch           - returns a subet of the data, parameterized by a step number.
+# > identity_subsetter  - default subsetter for a Preprocessor instance
+# > whiten_filter       - default filter for a Preprocessor instance
+
+""" Module classes """
+# > Preprocessor - an agent for filtering and subsetting images.
+#                  Allows filter parameters to be stored. A Preprocessor is
+#                  used to initialize a Tester instance.
+# > Tester       - an agent for running and storing the results of tests.
+
 
 def split_images(dataset, labels, fraction=0.8):
     """
@@ -72,46 +82,66 @@ def minibatch(dataset, labels, batch_size, step):
     batch_labels = labels[posn:(posn + batch_size), :]
     return batch_data, batch_labels
 
-class Preprocessor(object):
+
+def ohe_mask(mask):
     """
-    An agent for processing images and storing image metrics.
+        Returns an array of one-hot encoded labels for each pixel in a stack of masks.
 
-    Atrributes:
-        filter_parameters : dictionary containing a dataset's parameters
-                             these can be assigned and used by a Preprocessor's functions.
-    Methods:
-        filter_and_subset  : Applies filters to the image, then subsets the resulting images.
+        Args:
+            mask: np.float32 array of class masks (NHW)
 
-    filter_config is a function that returns:
-        A filter to be applied to each image in the dataset.
-        This filter should accept a dataset and a boolean indicating
-        whether to create a dictionary of config parameters.
-        A set of parameters to be used in these filters
-
-    def filter_function(self, dataset, use_existing_config):
-        if not use_existig_config:
-            self.filter_parameters['mean'] = np.mean(dataset, axis = 1)
-            self.filter_parameters['std']  = np.std(dataset, axis = 1)
-        filtered_dataset = (dataset - self.filter_parameters['mean'])/self.filter_parameters['std']
-        return filtered_dataset
-
-    def subset_function(self, dataset, label_masks):
-        return dataset, label_masks
-
+        Returns:
+            ohe_labels: np.float32 array of one-hot encoded labels (N*H*W, n_classes)
     """
+    n_classes  = np.unique(mask).shape[0]
+    ohe_labels = np.zeros([mask.shape[0]*mask.shape[1]*mask.shape[2], n_classes])
+    for k in range(n_classes):
+        ohe_labels[np.equal(mask, k).flatten(), k] = k
+    return ohe_labels.astype(np.float32)
 
-    def __init__(self, filter_function, subset_function):
-        self.filter = types.MethodType(filter_function, self) # A function accepting a stack of images and returning another stack of images
-        self.subset = types.MethodType(subset_funciton, self) # A function accepting a stack of images and returning another stack of images
-        self.filter_parameters = {}
 
-    def apply_filter(self, dataset, use_existing_config = False):
-        filtered_dataset = self.filter(dataset, use_existing_config)
-        return filtered_dataset
+def whiten(self, dataset, labels, train):
+    """
+    Default Preprocessor prepocessing (i.e. filter + subset) train. "self" refers to the
+    Preprocessor instance that calls this function. If train == True,
+    then the function configures the Preprocessor instance's pp_parameters{} attribute.
+    This is so that we can configure a preprocessor with a training dataset, then use that
+    configuration with a testing dataset.
 
-    def apply_subset(self, dataset, label_masks):
-        subset_dataset, subset_labels = self.subset(dataset, label_masks)
-        return subset_dataset, subset_labels
+    Args:
+        dataset:    np.float32 array of images (NHWC)
+        labels:     np.float32 array of pixel class masks  (NHWC)
+        train:      bool indicating whether to configure Preprocessor.pp_parameters[]
+                    and to return a balanced subset of data.
+
+    Returns:
+        filtered_dataset: np.float32 array of filtered and subset images.
+        filtered_labels:  np.float32 array of one-hot-encoded labels for the subset images.
+    """
+    if train:
+        self.pp_parameters['mean'] = np.mean(dataset, axis = 1)
+        self.pp_parameters['std']  = np.std(dataset, axis = 1)
+
+    filtered_dataset = (dataset - self.filter_parameters['mean'])/self.filter_parameters['std']
+    filtered_labels  = ohe_mask(labels[:, 0, 0]) # One label per each image returned
+
+    if train: filtered_dataset, filtered_labels = balance_dataset(filtered_dataset, filtered_labels)
+
+    return filtered_dataset, filtered_labels
+
+
+def balance_dataset(dataset, ohe_labels):
+    """
+        Aggressively balances a dataset of classified images.
+
+        Arguments:
+            dataset:    np.float32 array of images (N_1 x H x W x C)
+            ohe_labels: np.float32 array of one-hot encoded image labels. (N_1 x n_classes)
+
+        Returns:
+            balanced_dataset: np.float32 array of images (N_2 x H x W x C)
+            balanced_labels:  np.float32 array of labels (N_2 x n_classes)
+    """
 
 class Tester(object):
     """
@@ -131,12 +161,13 @@ class Tester(object):
      This library uses numpy and tensorflow for all operations.
     """
 
-    def __init__(self, dataset, labels, graph, preprocess, spec):
+    def __init__(self, dataset, labels, graph, preprocessor = whiten, spec):
         self.dataset         = {'full':dataset} # An array of images
         self.labels          = {'full':labels}  # An array of per-pixel image labels
         self.graph           = graph            # A TensorFlow graph
-        self.preprocessor    = preprocessor     # A Preprocessor object
+        self.preprocessor    = preprocessor     # A configured Preprocessor object - defaults
         self.spec            = spec             # A dictionary specifying the test config.
+        self.pp_parameters   = {}               # Populated by preprocessor(..., store_params = True)
 
         np.random.seed(self.spec['seed'])
 
@@ -151,17 +182,23 @@ class Tester(object):
 
         # Subset the data by image class content
         ( self.dataset['train'], self.dataset['test'],
-          self.labels['train'], self.labels['test']   ) = split_images(self.dataset['full'],
+          self.labels['train'],  self.labels['test']  ) = split_images(self.dataset['full'],
                                                                        self.labels['full'], fraction = 0.8)
 
-        self.dataset['ptrain'] = self.preprocessor.filter(self.dataset['train'], store_params = True) # Applies filters to whole images, then retrieves a balanced subset of the results
-        self.dataset['ptest']  = self.preprocessor.
+        # Apply the filter and subsetting - configure the preprocessor on the training data.
+        self.dataset['ptrain'], self.labels['ohetrain'] = self.preprocessor(self.dataset['train'],
+                                                                self.labels['train'], train = True)
+        self.dataset['ptest'], self.labels['ohetest']  = self.preprocessor(self.dataset['test'],
+                                                                self.labels['test'], train = False)
 
-        # Test the model
+        # NOTE: by-pixel label masks -> Preprocessor -> ohe label for each image returned
+        # NOTE: Preprocessed data is stored to avoid low-level (i.e pixel neighborhood)
+        #       class imbalance problems during training. Test data is left imbalanced.
+
+        # Run the model's graph
         self.results = self.evaluate_model()
 
     #def bootstrap(self):
-
 
     def evaluate_model(self):
         with tf.Session(graph = self.graph) as session:
@@ -170,7 +207,7 @@ class Tester(object):
 
             # Fit the model
             for step in range(spec['training_steps']):
-                    batch_data, batch_labels = minibatch(self.dataset['train'], self.labels['train'],
+                    batch_data, batch_labels = minibatch(self.dataset['ptrain'], self.labels['ptrain'],
                                                             self.spec['batch_size'], step)
                     batch_data = self.preprocess(batch_data)
                     fd = {tf_train_data:batch_data, tf_train_labels:batch_labels}
@@ -181,6 +218,6 @@ class Tester(object):
             test_predictions = tf_test_predictions.eval(feed_dct = {tf_test_data:self.preprocess(self.dataset['test'])})
             test_accuracy    = np.sum(np.argmax(test_predictions, axis = 1) ==
                                         np.argmax(labels['test'], axis = 1))/labels['test'].shape[0]
-            test_predictions =
+            test_predictions = # Reshape the test predictions to an image in the same dimension
 
         return {'predictions' : test_predictions, 'accuracy':test_accuracy}
