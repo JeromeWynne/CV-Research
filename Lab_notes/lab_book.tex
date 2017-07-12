@@ -1303,5 +1303,49 @@ Tomorrow I need to:
 (08:00 - 12:45) Building \texttt{pymv} testing utility.
 (13:50 - 14:30) Convex Optimization homework. Evaluating the convexity of sets that intersect the probability simplex.
 (14:30 - 17:10) Convex optimization homework (finished proving the convexity of sets that intersect the probability simplex). Made notes on operations that preserve convexity when applied to convex functions.
- 
+
+
+\labday{Wednesday, 12th July 2017}
+(07:20 - 09:00) Spatial transform networks paper. Learning an image transformation to a canonical form that subsequently enhances classification accuracy.
+(10:00 - 13:30) Prince, \emph{Computer Vision}. Reviewing the chapters covered so far. Bernoulli, beta, categorical, Dirichlet, normal, normal inverse Wishart distributions and their associated conjugacy. Generative models (modelling the contingency of the data on the world state) and discriminative models (modelling the contingency of the world state on the data). In other words, generative models demand parameterization of a function describing the data's likelihood, given the world state, and selection of an appropriate prior for the world state. They are generally more complex than discriminative models because it's expensive to compute the posterior and [therefore the] posterior predictive. Discriminative models, on the other hand, model the posterior - i.e. the world state, given the data - directly. They're much cheaper to learn and use, however they don't offer a simple means of incorporating prior information. Naive Bayes is a form of generative model that makes two distinguishing assumptions:
+\begin{itemize}
+	\item The elements of the data vector are independent of one another, conditional on the world state.
+	\item The elements of the data vector can be modelled using categorical distributions.
+\end{itemize}
+To provide an example, consider the possibility that the data vector is $[x_r, x_g, x_b]$, where $x_i$ denotes the $i$th channel's pixel intensity value (an integer between 0 and 255). For each world state, we fit categorical distributions to each element to reflect the relative probabilities of particular pixel intensities. At inference, we use a prior that accounts for the base rate of each world state to infer the most probable world state. Notice that the categorical distributions over each pixel's intensities implicitly assume that the other channels do not provide useful information about that channel's intensity value.
+
+(18:00 - 20:00) Prince, \emph{Computer Vision}. Using hidden variables to design better generative models.
+Chapter 7 concerned modelling complex data densities. It begins by highlighting the weaknesses in modelling the distribution of multivariate data using a normal distribution:
+\begin{itemize}
+	\item The distribution's parameters are very sensitive to outlier datapoints.
+	\item Many parameters must be estimated on account of the covariance matrix.
+	\item The distribution is unimodal - if observations for a given world state cluster around more than one value of a variable, the normal model will fare poorly.
+\end{itemize}
+It also introduced hidden variables. By having a variable $h$ that acts to select one of many possible distributions to generate a given datapoint, we can combine distributions to form an overall distribution in $x$ that is more expressive. In notation,
+\[
+	\text{Pr}(x|\theta) = \int \text{Pr}(x, h | \theta) dh
+\]
+Imagine drawing $h$ from its distribution, then drawing the distribution in $x$ at that value of $h$. The additional source of variation is used to weight many possible distributions in $x$. When we marginalize over $h$ - i.e. aggregate over it - these many possible distributions in $x$ form a weighted combination.
+
+But how to fit such a model? The distributions in $x$ must be parameterized at each possible value of $h$, and the distributions at each value of $h$ need to be weighted so as to line up with the data suggests. Weighting the distributions in $x$ is a matter of apportioning probabilities to the values of $h$: more probable $h$'s see their distributions in $x$ realized more frequently. However, there is a problem - it isn't possible to find the optimal distribution over $h$ without knowing what the distribution over $x$ is at each value of $h$. Additionally, we do not know which distribution in $x$ associated with each $h$ value generated the observations $x_i$.  To get circumvent this issue, we adopt a strategy of alternating between updating the marginal distribution over $h$ and updating the model parameters at each value of $h$, $\mathbf{\theta}$. This algorithm is known as the expectation maximization (EM) algorithm.
+
+The EM algorithm has two steps:
+\begin{enumerate}
+	\item E-step: In the E-step we update the estimates for the values of $h_i$ that were realized in drawing the observations $x_i$. Since each observation $x_i$ is assumed to be generated from a distribution associated with one value of $h$, this means that we update $I$ estimates of the values of $h$ from which $x_i$ was probably drawn. We denote these distributions over the plausible values of $h$ as $q_i(h_i)$.
+	\item M-step: The M-step acts to adjust the parameters of the probability distributions associated with each value of $h$. We denote these parameters $\theta$. These parameters are adjusted such that they maximize the bound on the log-likelihood.
+\end{enumerate}
+
+The book specified three models that can be interpreted in terms of hidden variables. These were:
+\begin{itemize}
+	\item Gaussian mixture models. Here a discrete hidden variable determines which of several Gaussians to draw an observation from. As such, weighting certain values of the hidden variable more heavily results in their associated Gaussians being responsible for more of the data generated.
+	\item A $t$-distribution. A continuous hidden variable is drawn from a gamma distribution and is then used to scale the variance of a normal distribution. In other words, at each value of $h$, there is a normal distribution with a unique variance. The marginal distribution of these values of $h$ is a gamma distribution. Marginalizing over $h$ results in the $t$-distribution. As it happens, the distribution over $h$ at each value of $x$ is also a gamma distribution, so when we update our estimates of the possible values for each $h_i$, we end up modifying the parameters for the gamma distributions at each $x_i$.
+	\item A factor analyzer. Factor analyzers model covariance in a linear subspace of the data. They can be understood as being constructed by:
+	\begin{enumerate}
+		\item Sampling a $K$-dimensional vector $\mathbf{h}$ from a multivariate standard normal with diagonal covariance.
+		\item Sampling $\mathbf{x}$ from a $D$-dimensional multivariate normal distribution located at $\mu + \mathbf{\phi}\mathbf{h}$, where the columns of $\mathbf{\phi}$ are vectors that span the $K$ directions in which the data varies most.
+	\end{enumerate} 
+\end{itemize}
+	In other words, we assume that $\mathbf{x}$ has been sampled from a normal distribution with uncorrelated components, but that this normal distribution is jiggled around in the directions in which covariance is largest. At each value of $h$, there is a normal distribution. $h$ is also normally distributed. Consequently, factor analyzers are effectively a continuous equivalent of a mixture of gaussians model.
+	
+(20:00 - 21:00) Coding testing utility.
  \end{document}
