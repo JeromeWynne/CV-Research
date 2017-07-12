@@ -125,14 +125,16 @@ def whiten(self, dataset, labels, train):
     filtered_dataset = (dataset - self.filter_parameters['mean'])/self.filter_parameters['std']
     filtered_labels  = ohe_mask(labels[:, 0, 0]) # One label per each image returned
 
-    if train: filtered_dataset, filtered_labels = balance_dataset(filtered_dataset, filtered_labels)
+    if train:
+        filtered_dataset, filtered_labels = balance_dataset(filtered_dataset,
+                                                                filtered_labels, self.spec['ntrain'])
 
     return filtered_dataset, filtered_labels
 
 
-def balance_dataset(dataset, ohe_labels):
+def balance_dataset(dataset, ohe_labels, n_samples):
     """
-        Aggressively balances a dataset of classified images.
+        Aggressively balances a dataset of classified images *with replacement*.
 
         Arguments:
             dataset:    np.float32 array of images (N_1 x H x W x C)
@@ -142,20 +144,30 @@ def balance_dataset(dataset, ohe_labels):
             balanced_dataset: np.float32 array of images (N_2 x H x W x C)
             balanced_labels:  np.float32 array of labels (N_2 x n_classes)
     """
+    indices      = np.nonzero(dataset[:, 0, 0, 0] != None)
+    index_probabilities = np.sum(ohe_labels / np.sum(ohe_labels, axis = 0)),
+                                 axis = 1)
+    index_probabilities = index_probabilities / np.sum(index_probabilities)
+    chosen_indices      = np.random.choice(indices, size = n_samples, replace = True,
+                                           p = index_probabilities)
+
+    balanced_dataset    = dataset[chosen_indices, :, :, :]
+    balanced_labels     = ohe_labels[chosen_indices, :]
+    return balanced_dataset, balaced_labels
 
 class Tester(object):
     """
     An agent for running and storing the results of tests on image classifiers.
 
     Methods:
-        Holdout   : Evaluates the model using holdout validation.
-        Bootstrap : Evaluates the model by measuring performance across bootstrap fits.
+        holdout   : Evaluates the model using holdout validation.
+        bootstrap : Evaluates the model by measuring performance across bootstrap fits.
 
     Attributes:
         dataset       : np.float32 array (units x rows x cols x channels)
         labels        : one-hot encoded np.float32 array (units x rows x cols)
         graph         : tensorflow graph (inc. processing of images)
-        spec          : dictionary e.g. {'mode':'holdout', 'seed':1}
+        spec          : dictionary e.g. {'mode':'holdout', 'seed':1, 'ntrain':1000}
         results       : dictionary containing test results
 
      This library uses numpy and tensorflow for all operations.
@@ -194,11 +206,14 @@ class Tester(object):
         # NOTE: by-pixel label masks -> Preprocessor -> ohe label for each image returned
         # NOTE: Preprocessed data is stored to avoid low-level (i.e pixel neighborhood)
         #       class imbalance problems during training. Test data is left imbalanced.
+        # NOTE: The number of training instances to be used should be used by preprocessing()
+        #       and should be specified in spec (e.g. spec = { ... 'ntrain':5000})
 
         # Run the model's graph
         self.results = self.evaluate_model()
 
     #def bootstrap(self):
+    
 
     def evaluate_model(self):
         with tf.Session(graph = self.graph) as session:
