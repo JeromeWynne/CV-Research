@@ -11,13 +11,14 @@ import numpy as np
 """ Module functions """
 # > split_dataset       - performs a stratified split of a dataset of images and label masks.
 # > minibatch           - returns a subet of the data, parameterized by a step number.
+# > accuracy_score      - returns the fraction of correct predictions made by the classifier.
+# > ohe_mask            - one-hot encode a set of image masks by pixel.
+# > whiten              - subtract mean and standardize each feature in a stack of images.
+# > balance_dataset     - balance dataset classes by balanced resampling by one-hot encoded labels.
 
 """ Module classes """
-# > Preprocessor - an agent for filtering and subsetting images.
-#                  Allows filter parameters to be stored. A Preprocessor is
-#                  used to initialize a Tester instance.
-# > Tester       - an agent for running and storing the results of tests.
-
+# > Tester       - an agent for preprocessing data, running tests, and
+#                  reporting test results.
 
 def split_dataset(dataset, labels, fraction=0.8):
     """
@@ -40,8 +41,9 @@ def split_dataset(dataset, labels, fraction=0.8):
         none
     """
 
-    positive_ix   = np.array(np.nonzero(np.any(labels == 1., axis = 0))).T # Indices of images containing positive class
-    negative_ix   = np.array(np.nonzero(np.any(labels == 0., axis = 0))).T # Indices of images containing negative class
+    positive_ix   = np.array(np.nonzero(np.sum(np.sum(labels == 1., axis = 2), axis = 1))).flatten() # Indices of images containing positive class
+    negative_ix   = np.array(np.nonzero(np.sum(np.sum(labels == 0., axis = 2), axis = 1))).flatten() # Indices of images containing negative class
+
     rnd_pos_ix    = np.random.choice(positive_ix,
                                      size    = int(fraction*positive_ix.shape[0]),
                                      replace = False) # Subset of posti indices
@@ -106,11 +108,12 @@ def ohe_mask(mask):
 
 def whiten(self, dataset, labels, train):
     """
-    Default Preprocessor prepocessing (i.e. filter + subset) train. "self" refers to the
-    Preprocessor instance that calls this function. If train == True,
-    then the function configures the Preprocessor instance's pp_parameters{} attribute.
-    This is so that we can configure a preprocessor with a training dataset, then use that
-    configuration with a testing dataset.
+    Default Preprocessor preprocessing (i.e. filter + subset) function.
+    "self" refers to the Tester instance that calls this function.
+    If train == True, then the function configures the Preprocessor
+    instance's pp_parameters{} attribute. This is so that we can configure
+    a preprocessor with a training dataset, then use that configuration
+    with a testing dataset.
 
     Args:
         dataset:    np.float32 array of images (NHWC)
@@ -148,7 +151,7 @@ def balance_dataset(dataset, ohe_labels, n_samples):
             balanced_labels:  np.float32 array of labels (N_2 x n_classes)
     """
     indices      = np.nonzero(dataset[:, 0, 0, 0] != None)
-    index_probabilities = np.sum(ohe_labels / np.sum(ohe_labels, axis = 0)),
+    index_probabilities = np.sum(ohe_labels / np.sum(ohe_labels, axis = 0),
                                  axis = 1)
     index_probabilities = index_probabilities / np.sum(index_probabilities)
     chosen_indices      = np.random.choice(indices, size = n_samples, replace = True,
@@ -178,9 +181,9 @@ class Tester(object):
      This library uses numpy and tensorflow for all operations.
     """
 
-    def __init__(self, dataset, labels, graph, preprocessor = whiten, spec):
+    def __init__(self, dataset, masks, graph, spec, preprocessor = whiten):
         self.dataset         = {'full':dataset} # An array of images
-        self.labels          = {'full':labels}  # An array of per-pixel image labels
+        self.labels          = {'full':masks}  # An array of per-pixel image labels
         self.graph           = graph            # A TensorFlow graph
         self.preprocessor    = preprocessor     # A configured Preprocessor object - defaults
         self.spec            = spec             # A dictionary specifying the test config.
@@ -206,10 +209,10 @@ class Tester(object):
           self.labels['train'],  self.labels['test']  ) = split_dataset(self.dataset['full'],
                                                                        self.labels['full'], fraction = 0.8)
         print('\n\nDataset \t Dim. \t Mem. Usage \n')
-        print(' Train  \t {} \t {:06.2f}\n'.format(self.dataset['train'].shape),
-                                                   getsizeof(self.dataset['train'])/(10**(-6)))
-        print(' Test   \t {} \t {:06.2f}\n'.format(self.dataset['test'].shape),
-                                                   getsizeof(self.dataset['test']/(10**(-6)))
+        print(' Train  \t {} \t {:06.2f}\n'.format(self.dataset['train'].shape,
+                                                   getsizeof(self.dataset['train'])/(10**-6)))
+        print(' Test   \t {} \t {:06.2f}\n'.format(self.dataset['test'].shape,
+                                                   getsizeof(self.dataset['test'])/(10**-6)))
 
         # Apply the filter and subsetting - configure the preprocessor on the training data.
         print('\nApplying preprocessing to training data.')
@@ -219,10 +222,10 @@ class Tester(object):
         self.dataset['ptest'], self.labels['ohetest']  = self.preprocessor(self.dataset['test'],
                                                                 self.labels['test'], train = False)
         print('\n\nDataset \t Dim. \t Mem. Usage \n')
-        print(' PTrain  \t {} \t {:06.2f}\n'.format(self.dataset['train'].shape),
-                                                   getsizeof(self.dataset['ptrain'])/(10**(-6)))
-        print(' PTest   \t {} \t {:06.2f}\n'.format(self.dataset['test'].shape),
-                                                   getsizeof(self.dataset['ptest']/(10**(-6)))
+        print(' PTrain  \t {} \t {:06.2f}\n'.format(self.dataset['train'].shape,
+                                                   getsizeof(self.dataset['ptrain'])/(10**-6)))
+        print(' PTest   \t {} \t {:06.2f}\n'.format(self.dataset['test'].shape,
+                                                   getsizeof(self.dataset['ptest'])/(10**-6)))
 
         # NOTE: by-pixel label masks -> Preprocessor -> ohe label for each image returned
         # NOTE: Preprocessed data is stored to avoid low-level (i.e pixel neighborhood)
@@ -239,6 +242,7 @@ class Tester(object):
 
         with tf.Session(graph = self.graph) as session:
             print('\nFitting model...')
+            # Initialize model variables
             tf.global_variables_initializer().run()
 
             # Fit the model
@@ -250,9 +254,9 @@ class Tester(object):
                     _, l, pred = session.run([optimizer, loss, tf_train_predictions], feed_dict = fd)
 
                     print('\n\nTraining accuracy @ step {}: {:04.2f}'.format(step, accuracy_score(pred, batch_labels)))
-                    print('\nTraining loss @ step {}: {:06.2f}').format(step, l)
+                    print('\nTraining loss @ step {}: {:06.2f}'.format(step, l))
 
-            # Evaluate the model's testing performance
+            # Evaluate the model's test performance
             test_predictions = tf_test_predictions.eval(feed_dct = {tf_test_data:self.dataset['ptest']})
             test_accuracy    = accuracy_score(test_predictions, self.labels['ptest'])
             print('\n\nTesting accuracy @ step {}: {:04.2f}'.format(spec['training_steps'], test_accuracy))
