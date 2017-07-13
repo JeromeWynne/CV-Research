@@ -55,9 +55,9 @@ def split_dataset(dataset, labels, fraction=0.8):
     mask[rnd_pos_ix] = True
     mask[rnd_neg_ix] = True
     train_images  = dataset[mask, :, :, :]
-    train_labels  = dataset[mask, :, :, :].squeeze()
+    train_labels  = labels[mask, :, :]
     test_images   = dataset[np.logical_not(mask), :, :, :]
-    test_labels   = dataset[np.logical_not(mask), :, :, :].squeeze()
+    test_labels   = labels[np.logical_not(mask), :, :]
 
     return train_images, test_images, train_labels, test_labels
 
@@ -127,8 +127,8 @@ def whiten(self, dataset, labels, train):
         filtered_labels:  np.float32 array of one-hot-encoded labels for the subset images.
     """
     if train:
-        self.pp_parameters['mean'] = np.mean(dataset, axis = 1)
-        self.pp_parameters['std']  = np.std(dataset, axis = 1)
+        self.pp_parameters['mean'] = np.mean(dataset, axis = 0)
+        self.pp_parameters['std']  = np.std(dataset, axis = 0)
 
     filtered_dataset = (dataset - self.filter_parameters['mean'])/self.filter_parameters['std']
     filtered_labels  = ohe_mask(labels[:, 0, 0]) # One label per each image returned
@@ -209,6 +209,7 @@ class Tester(object):
         ( self.dataset['train'], self.dataset['test'],
           self.labels['train'],  self.labels['test']  ) = split_dataset(self.dataset['full'],
                                                                         self.labels['full'], fraction = 0.8)
+
         print('\n\nDataset \t Dim. \t Mem. Usage \n')
         print('Train  \t {} \t {:06.2f}MB\n'.format(self.dataset['train'].shape,
                                                    getsizeof(self.dataset['train'])/(10**6)))
@@ -223,9 +224,9 @@ class Tester(object):
         self.dataset['ptest'], self.labels['ohetest']  = self.preprocessor(self.dataset['test'],
                                                                 self.labels['test'], train = False)
         print('\n\nDataset \t Dim. \t Mem. Usage \n')
-        print('PTrain  \t {} \t {:06.2f}MB\n'.format(self.dataset['train'].shape,
+        print('PTrain  \t {} \t {:06.2f}MB\n'.format(self.dataset['ptrain'].shape,
                                                    getsizeof(self.dataset['ptrain'])/(10**6)))
-        print('PTest   \t {} \t {:06.2f}MB\n'.format(self.dataset['test'].shape,
+        print('PTest   \t {} \t {:06.2f}MB\n'.format(self.dataset['ptest'].shape,
                                                    getsizeof(self.dataset['ptest'])/(10**6)))
 
         # NOTE: by-pixel label masks -> Preprocessor -> ohe label for each image returned
@@ -247,9 +248,9 @@ class Tester(object):
             tf.global_variables_initializer().run()
 
             # Fit the model
-            for step in range(spec['training_steps']):
+            for step in range(self.spec['training_steps']):
 
-                    batch_data, batch_labels = minibatch(self.dataset['ptrain'], self.labels['ptrain'],
+                    batch_data, batch_labels = minibatch(self.dataset['ptrain'], self.labels['ohetrain'],
                                                          self.spec['batch_size'], step)
                     fd = {tf_train_data:batch_data, tf_train_labels:batch_labels}
                     _, l, pred = session.run([optimizer, loss, tf_train_predictions], feed_dict = fd)
@@ -259,6 +260,6 @@ class Tester(object):
 
             # Evaluate the model's test performance
             test_predictions = tf_test_predictions.eval(feed_dct = {tf_test_data:self.dataset['ptest']})
-            test_accuracy    = accuracy_score(test_predictions, self.labels['ptest'])
-            print('\n\nTesting accuracy @ step {}: {:04.2f}'.format(spec['training_steps'], test_accuracy))
+            test_accuracy    = accuracy_score(test_predictions, self.labels['ohetest'])
+            print('\n\nTesting accuracy @ step {}: {:04.2f}'.format(self.spec['training_steps'], test_accuracy))
             #test_predictions = mask_ohe(test_predictions, self.labels['train']) # Reshape to original mask dimensions
