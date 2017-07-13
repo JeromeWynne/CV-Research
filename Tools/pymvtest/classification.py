@@ -4,14 +4,13 @@
 #               test machine vision classifiers.
 # Last updated: 11/07/2017
 
+from sys import getsizeof
 import tensorflow as tf
 import numpy as np
 
 """ Module functions """
-# > split_images        - performs a stratified split of a dataset of images and label masks.
+# > split_dataset       - performs a stratified split of a dataset of images and label masks.
 # > minibatch           - returns a subet of the data, parameterized by a step number.
-# > identity_subsetter  - default subsetter for a Preprocessor instance
-# > whiten_filter       - default filter for a Preprocessor instance
 
 """ Module classes """
 # > Preprocessor - an agent for filtering and subsetting images.
@@ -20,7 +19,7 @@ import numpy as np
 # > Tester       - an agent for running and storing the results of tests.
 
 
-def split_images(dataset, labels, fraction=0.8):
+def split_dataset(dataset, labels, fraction=0.8):
     """
     Splits the dataset images and labels according to the classes they contain.
 
@@ -59,7 +58,6 @@ def split_images(dataset, labels, fraction=0.8):
 
     return train_images, test_images, train_labels, test_labels
 
-
 def minibatch(dataset, labels, batch_size, step):
     """
     Returns a subset of the dataset according to the training step.
@@ -82,6 +80,13 @@ def minibatch(dataset, labels, batch_size, step):
     batch_labels = labels[posn:(posn + batch_size), :]
     return batch_data, batch_labels
 
+def accuracy_score(predictions, ground_truth):
+    """
+    Accepts one-hot encoded predictions and ground truth. (np.float32 arrays)
+    """
+    score = np.sum(np.argmax(test_predictions, axis = 1) ==
+                            np.argmax(labels['test'], axis = 1))/labels['test'].shape[0]
+    return score
 
 def ohe_mask(mask):
     """
@@ -98,7 +103,6 @@ def ohe_mask(mask):
     for k in range(n_classes):
         ohe_labels[np.equal(mask, k).flatten(), k] = k
     return ohe_labels.astype(np.float32)
-
 
 def whiten(self, dataset, labels, train):
     """
@@ -127,10 +131,9 @@ def whiten(self, dataset, labels, train):
 
     if train:
         filtered_dataset, filtered_labels = balance_dataset(filtered_dataset,
-                                                                filtered_labels, self.spec['ntrain'])
+                                                                filtered_labels, self.spec['n_train'])
 
     return filtered_dataset, filtered_labels
-
 
 def balance_dataset(dataset, ohe_labels, n_samples):
     """
@@ -167,7 +170,9 @@ class Tester(object):
         dataset       : np.float32 array (units x rows x cols x channels)
         labels        : one-hot encoded np.float32 array (units x rows x cols)
         graph         : tensorflow graph (inc. processing of images)
-        spec          : dictionary e.g. {'mode':'holdout', 'seed':1, 'ntrain':1000}
+        spec          : dictionary e.g. {'mode':'holdout', 'seed':1,
+                                         'n_train':1000, 'batch_size':32,
+                                         'training_steps':10000}
         results       : dictionary containing test results
 
      This library uses numpy and tensorflow for all operations.
@@ -184,24 +189,40 @@ class Tester(object):
         np.random.seed(self.spec['seed'])
 
         # Read the test spec. to determine the test to run.
-        if self.spec['mode'] == 'holdout':   self.holdout()
-        if self.spec['mode'] == 'bootstrap': self.bootstrap()
-
+        if self.spec['mode'] == 'holdout':
+            print('Holdout testing mode initialized.')
+            self.holdout()
+        if self.spec['mode'] == 'bootstrap':
+            print('Bootstrap testing mode initialized.')
+            self.bootstrap()
 
     def holdout(self):
         # Fits the model to a subset of the data then calculates its
         # performance on a held-out fraction of the data.
 
-        # Subset the data by image class content
+        print('\nSplitting images by class content...')
+        # Split the data by image class content
         ( self.dataset['train'], self.dataset['test'],
-          self.labels['train'],  self.labels['test']  ) = split_images(self.dataset['full'],
+          self.labels['train'],  self.labels['test']  ) = split_dataset(self.dataset['full'],
                                                                        self.labels['full'], fraction = 0.8)
+        print('\n\nDataset \t Dim. \t Mem. Usage \n')
+        print(' Train  \t {} \t {:06.2f}\n'.format(self.dataset['train'].shape),
+                                                   getsizeof(self.dataset['train'])/(10**(-6)))
+        print(' Test   \t {} \t {:06.2f}\n'.format(self.dataset['test'].shape),
+                                                   getsizeof(self.dataset['test']/(10**(-6)))
 
         # Apply the filter and subsetting - configure the preprocessor on the training data.
+        print('\nApplying preprocessing to training data.')
         self.dataset['ptrain'], self.labels['ohetrain'] = self.preprocessor(self.dataset['train'],
                                                                 self.labels['train'], train = True)
+        print('\nApplying preprocessing to testing data.')
         self.dataset['ptest'], self.labels['ohetest']  = self.preprocessor(self.dataset['test'],
                                                                 self.labels['test'], train = False)
+        print('\n\nDataset \t Dim. \t Mem. Usage \n')
+        print(' PTrain  \t {} \t {:06.2f}\n'.format(self.dataset['train'].shape),
+                                                   getsizeof(self.dataset['ptrain'])/(10**(-6)))
+        print(' PTest   \t {} \t {:06.2f}\n'.format(self.dataset['test'].shape),
+                                                   getsizeof(self.dataset['ptest']/(10**(-6)))
 
         # NOTE: by-pixel label masks -> Preprocessor -> ohe label for each image returned
         # NOTE: Preprocessed data is stored to avoid low-level (i.e pixel neighborhood)
@@ -213,26 +234,26 @@ class Tester(object):
         self.results = self.evaluate_model()
 
     #def bootstrap(self):
-    
 
     def evaluate_model(self):
+
         with tf.Session(graph = self.graph) as session:
-            print('Testing session initialized. Fitting model...')
+            print('\nFitting model...')
             tf.global_variables_initializer().run()
 
             # Fit the model
             for step in range(spec['training_steps']):
-                    batch_data, batch_labels = minibatch(self.dataset['ptrain'], self.labels['ptrain'],
-                                                            self.spec['batch_size'], step)
-                    batch_data = self.preprocess(batch_data)
-                    fd = {tf_train_data:batch_data, tf_train_labels:batch_labels}
 
-                    _  = session.run([optimizer, loss, tf_train_predictions], feed_dict = fd)
+                    batch_data, batch_labels = minibatch(self.dataset['ptrain'], self.labels['ptrain'],
+                                                         self.spec['batch_size'], step)
+                    fd = {tf_train_data:batch_data, tf_train_labels:batch_labels}
+                    _, l, pred = session.run([optimizer, loss, tf_train_predictions], feed_dict = fd)
+
+                    print('\n\nTraining accuracy @ step {}: {:04.2f}'.format(step, accuracy_score(pred, batch_labels)))
+                    print('\nTraining loss @ step {}: {:06.2f}').format(step, l)
 
             # Evaluate the model's testing performance
-            test_predictions = tf_test_predictions.eval(feed_dct = {tf_test_data:self.preprocess(self.dataset['test'])})
-            test_accuracy    = np.sum(np.argmax(test_predictions, axis = 1) ==
-                                        np.argmax(labels['test'], axis = 1))/labels['test'].shape[0]
-            test_predictions = # Reshape the test predictions to an image in the same dimension
-
-        return {'predictions' : test_predictions, 'accuracy':test_accuracy}
+            test_predictions = tf_test_predictions.eval(feed_dct = {tf_test_data:self.dataset['ptest']})
+            test_accuracy    = accuracy_score(test_predictions, self.labels['ptest'])
+            print('\n\nTesting accuracy @ step {}: {:04.2f}'.format(spec['training_steps'], test_accuracy))
+            #test_predictions = mask_ohe(test_predictions, self.labels['train']) # Reshape to original mask dimensions
