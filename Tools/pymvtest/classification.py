@@ -194,11 +194,8 @@ class Tester(object):
 
         # Read the test spec. to determine the test to run.
         if self.spec['mode'] == 'holdout':
-            print('Holdout testing mode initialized.')
+            print('Holdout testing mode initialized. Preprocessing data...')
             self.holdout()
-        if self.spec['mode'] == 'bootstrap':
-            print('Bootstrap testing mode initialized.')
-            self.bootstrap()
 
     def holdout(self):
         # Fits the model to a subset of the data then calculates its
@@ -209,20 +206,21 @@ class Tester(object):
         ( self.dataset['train'], self.dataset['test'],
           self.labels['train'],  self.labels['test']  ) = split_dataset(self.dataset['full'],
                                                                         self.labels['full'], fraction = 0.8)
-
-        print('\n\nDataset \t Dim. \t Mem. Usage \n')
+        print(' Dataset split.')
+        print('\nDataset \t Dim. \t Mem. Usage \n')
         print('Train  \t {} \t {:06.2f}MB\n'.format(self.dataset['train'].shape,
                                                    getsizeof(self.dataset['train'])/(10**6)))
         print('Test   \t {} \t {:06.2f}MB\n'.format(self.dataset['test'].shape,
                                                    getsizeof(self.dataset['test'])/(10**6)))
 
         # Apply the filter and subsetting - configure the preprocessor on the training data.
-        print('\nApplying preprocessing to training data.')
+        print('\nPreprocessing training data... ')
         self.dataset['ptrain'], self.labels['ohetrain'] = self.preprocessor(self.dataset['train'],
                                                                 self.labels['train'], train = True)
-        print('\nApplying preprocessing to testing data.')
+        print('Training data preprocessed.\nPreprocessing testing data... ')
         self.dataset['ptest'], self.labels['ohetest']  = self.preprocessor(self.dataset['test'],
                                                                 self.labels['test'], train = False)
+        print('Testing data preprocessed.')
         print('\n\nDataset \t Dim. \t Mem. Usage \n')
         print('PTrain  \t {} \t {:06.2f}MB\n'.format(self.dataset['ptrain'].shape,
                                                    getsizeof(self.dataset['ptrain'])/(10**6)))
@@ -235,13 +233,7 @@ class Tester(object):
         # NOTE: The number of training instances to be used should be used by preprocessing()
         #       and should be specified in spec (e.g. spec = { ... 'ntrain':5000})
 
-        # Run the model's graph
-        self.results = self.evaluate_model()
-
-    #def bootstrap(self):
-
     def evaluate_model(self):
-
         with tf.Session(graph = self.graph) as session:
             print('\nFitting model...')
             # Initialize model variables
