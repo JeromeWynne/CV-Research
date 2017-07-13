@@ -7,6 +7,7 @@
 from sys import getsizeof
 import tensorflow as tf
 import numpy as np
+import types
 
 """ Module functions """
 # > split_dataset       - performs a stratified split of a dataset of images and label masks.
@@ -54,9 +55,9 @@ def split_dataset(dataset, labels, fraction=0.8):
     mask[rnd_pos_ix] = True
     mask[rnd_neg_ix] = True
     train_images  = dataset[mask, :, :, :]
-    train_labels  = dataset[mask, :]
+    train_labels  = dataset[mask, :, :, :].squeeze()
     test_images   = dataset[np.logical_not(mask), :, :, :]
-    test_labels   = dataset[np.logical_not(mask), :, :, :]
+    test_labels   = dataset[np.logical_not(mask), :, :, :].squeeze()
 
     return train_images, test_images, train_labels, test_labels
 
@@ -185,7 +186,7 @@ class Tester(object):
         self.dataset         = {'full':dataset} # An array of images
         self.labels          = {'full':masks}  # An array of per-pixel image labels
         self.graph           = graph            # A TensorFlow graph
-        self.preprocessor    = preprocessor     # A configured Preprocessor object - defaults
+        self.preprocessor    = types.MethodType(preprocessor, self)    # A configured Preprocessor object - defaults
         self.spec            = spec             # A dictionary specifying the test config.
         self.pp_parameters   = {}               # Populated by preprocessor(..., store_params = True)
 
@@ -207,12 +208,12 @@ class Tester(object):
         # Split the data by image class content
         ( self.dataset['train'], self.dataset['test'],
           self.labels['train'],  self.labels['test']  ) = split_dataset(self.dataset['full'],
-                                                                       self.labels['full'], fraction = 0.8)
+                                                                        self.labels['full'], fraction = 0.8)
         print('\n\nDataset \t Dim. \t Mem. Usage \n')
-        print(' Train  \t {} \t {:06.2f}\n'.format(self.dataset['train'].shape,
-                                                   getsizeof(self.dataset['train'])/(10**-6)))
-        print(' Test   \t {} \t {:06.2f}\n'.format(self.dataset['test'].shape,
-                                                   getsizeof(self.dataset['test'])/(10**-6)))
+        print('Train  \t {} \t {:06.2f}MB\n'.format(self.dataset['train'].shape,
+                                                   getsizeof(self.dataset['train'])/(10**6)))
+        print('Test   \t {} \t {:06.2f}MB\n'.format(self.dataset['test'].shape,
+                                                   getsizeof(self.dataset['test'])/(10**6)))
 
         # Apply the filter and subsetting - configure the preprocessor on the training data.
         print('\nApplying preprocessing to training data.')
@@ -222,10 +223,10 @@ class Tester(object):
         self.dataset['ptest'], self.labels['ohetest']  = self.preprocessor(self.dataset['test'],
                                                                 self.labels['test'], train = False)
         print('\n\nDataset \t Dim. \t Mem. Usage \n')
-        print(' PTrain  \t {} \t {:06.2f}\n'.format(self.dataset['train'].shape,
-                                                   getsizeof(self.dataset['ptrain'])/(10**-6)))
-        print(' PTest   \t {} \t {:06.2f}\n'.format(self.dataset['test'].shape,
-                                                   getsizeof(self.dataset['ptest'])/(10**-6)))
+        print('PTrain  \t {} \t {:06.2f}MB\n'.format(self.dataset['train'].shape,
+                                                   getsizeof(self.dataset['ptrain'])/(10**6)))
+        print('PTest   \t {} \t {:06.2f}MB\n'.format(self.dataset['test'].shape,
+                                                   getsizeof(self.dataset['ptest'])/(10**6)))
 
         # NOTE: by-pixel label masks -> Preprocessor -> ohe label for each image returned
         # NOTE: Preprocessed data is stored to avoid low-level (i.e pixel neighborhood)
