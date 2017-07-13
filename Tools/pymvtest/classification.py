@@ -87,8 +87,8 @@ def accuracy_score(predictions, ground_truth):
     """
     Accepts one-hot encoded predictions and ground truth. (np.float32 arrays)
     """
-    score = np.sum(np.argmax(test_predictions, axis = 1) ==
-                            np.argmax(labels['test'], axis = 1))/labels['test'].shape[0]
+    score = 100*np.sum(np.argmax(predictions, axis = 1) ==
+                            np.argmax(ground_truth, axis = 1))/ground_truth.shape[0]
     return score
 
 def ohe_mask(mask):
@@ -252,14 +252,15 @@ class Tester(object):
 
                     batch_data, batch_labels = minibatch(self.dataset['ptrain'], self.labels['ohetrain'],
                                                          self.spec['batch_size'], step)
-                    fd = {tf_train_data:batch_data, tf_train_labels:batch_labels}
-                    _, l, pred = session.run([optimizer, loss, tf_train_predictions], feed_dict = fd)
+                    fd = {'tf_train_data:0':batch_data, 'tf_train_labels:0':batch_labels}
+                    _, l, pred = session.run(['optimizer', 'loss:0', 'tf_train_predictions:0'], feed_dict = fd)
 
-                    print('\n\nTraining accuracy @ step {}: {:04.2f}'.format(step, accuracy_score(pred, batch_labels)))
-                    print('\nTraining loss @ step {}: {:06.2f}'.format(step, l))
+                    if step % 500 == 0:
+                        print('\n\nTraining accuracy @ step {}: {:04.2f}%'.format(step, accuracy_score(pred, batch_labels)))
+                        print('\nTraining loss @ step {}: {}'.format(step, l))
 
             # Evaluate the model's test performance
-            test_predictions = tf_test_predictions.eval(feed_dct = {tf_test_data:self.dataset['ptest']})
+            test_predictions = session.run(['tf_test_predictions:0'], feed_dct = {'tf_test_data:0':self.dataset['ptest']})
             test_accuracy    = accuracy_score(test_predictions, self.labels['ohetest'])
-            print('\n\nTesting accuracy @ step {}: {:04.2f}'.format(self.spec['training_steps'], test_accuracy))
+            print('\n\nTesting accuracy @ step {}: {:04.2f}%'.format(self.spec['training_steps'], test_accuracy))
             #test_predictions = mask_ohe(test_predictions, self.labels['train']) # Reshape to original mask dimensions
