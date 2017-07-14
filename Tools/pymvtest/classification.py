@@ -192,10 +192,9 @@ class Tester(object):
 
                     if step % 500 == 0:
                         print('Step {}\n-------------'.format(step))
-                        print('\nMinibatch accuracy: {:04.2f}%'.format(accuracy_score(pred, batch_labels)))
-                        print('\nMinibatch loss: {:06.4f}'.format(l))
+                        print('Minibatch accuracy: {:04.2f}%'.format(accuracy_score(pred, batch_labels)))
+                        print('Minibatch loss: {:06.4f}'.format(l))
                         validation_predictions = session.run('tf_test_predictions:0',
                                                              feed_dict = {'tf_test_data:0':self.dataset['pvalid']})
-                        print(validation_predictions)
-                        print('\nValidation accuracy: {:04.2f}%'.format(accuracy_score(
+                        print('Validation accuracy: {:04.2f}%\n'.format(accuracy_score(
                                                              validation_predictions, self.labels['ohevalid'])))
