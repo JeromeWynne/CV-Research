@@ -24,12 +24,10 @@ import types
 def split_dataset(dataset, labels, fraction=0.8):
     """
     Splits the dataset images and labels according to the classes they contain.
-
     Args:
         dataset: np.float32 array of images                 [units x rows x cols x channels]
         labels:  np.float32 array of per-pixel label masks  [units x rows x cols x channels]
         fraction: float indicating training fractions       [scalar]
-
     Returns:
         Arrays containing the images and associated label masks.
             > train_images, test_images, train_labels, test_labels
@@ -37,7 +35,6 @@ def split_dataset(dataset, labels, fraction=0.8):
         test_images:  np.float32 array of image subset      [units x rows x cols x channels]
         train_labels: np.float32 array of per-pixel labels  [units x rows x cols x channels]
         test_labels:  np.float32 array of per-pixel labels  [units x rows x cols x channels]
-
     Raises:
         none
     """
@@ -64,17 +61,14 @@ def split_dataset(dataset, labels, fraction=0.8):
 def minibatch(dataset, labels, batch_size, step):
     """
     Returns a subset of the dataset according to the training step.
-
     Args:
         dataset:    np.float32 array of images                         [units x rows x cols x channels]
         labels:     np.float32 array of one-hot-enocoded image labels  [units x classes]
         batch_size: int number of elements retrieved per step          [integer]
         step:       int step number in training session                [integer]
-
     Returns:
         A subset of the images and their associated labels.
             > batch_data, batch_labels
-
     Raises:
         none
     """
@@ -94,10 +88,8 @@ def accuracy_score(predictions, ground_truth):
 def ohe_mask(mask):
     """
         Returns an array of one-hot encoded labels for each pixel in a stack of masks.
-
         Args:
             mask: np.float32 array of class masks (NHW)
-
         Returns:
             ohe_labels: np.float32 array of one-hot encoded labels (N*H*W, n_classes)
     """
@@ -107,46 +99,12 @@ def ohe_mask(mask):
         ohe_labels[np.equal(mask, k).flatten(), k] = k
     return ohe_labels.astype(np.float32)
 
-def whiten(self, dataset, labels, train):
-    """
-    Default Preprocessor preprocessing (i.e. filter + subset) function.
-    "self" refers to the Tester instance that calls this function.
-    If train == True, then the function configures the Preprocessor
-    instance's pp_parameters{} attribute. This is so that we can configure
-    a preprocessor with a training dataset, then use that configuration
-    with a testing dataset.
-
-    Args:
-        dataset:    np.float32 array of images (NHWC)
-        labels:     np.float32 array of pixel class masks  (NHWC)
-        train:      bool indicating whether to configure Preprocessor.pp_parameters[]
-                    and to return a balanced subset of data.
-
-    Returns:
-        filtered_dataset: np.float32 array of filtered and subset images.
-        filtered_labels:  np.float32 array of one-hot-encoded labels for the subset images.
-    """
-    if train:
-        self.pp_parameters['mean'] = np.mean(dataset, axis = 0)
-        self.pp_parameters['std']  = np.std(dataset, axis = 0)
-
-    filtered_dataset = (dataset - self.filter_parameters['mean'])/self.filter_parameters['std']
-    filtered_labels  = ohe_mask(labels[:, 0, 0]) # One label per each image returned
-
-    if train:
-        filtered_dataset, filtered_labels = balance_dataset(filtered_dataset,
-                                                                filtered_labels, self.spec['n_train'])
-
-    return filtered_dataset, filtered_labels
-
 def balance_dataset(dataset, ohe_labels, n_samples):
     """
         Aggressively balances a dataset of classified images *with replacement*.
-
         Arguments:
             dataset:    np.float32 array of images (N_1 x H x W x C)
             ohe_labels: np.float32 array of one-hot encoded image labels. (N_1 x n_classes)
-
         Returns:
             balanced_dataset: np.float32 array of images (N_2 x H x W x C)
             balanced_labels:  np.float32 array of labels (N_2 x n_classes)
@@ -165,11 +123,9 @@ def balance_dataset(dataset, ohe_labels, n_samples):
 class Tester(object):
     """
     An agent for running and storing the results of tests on image classifiers.
-
     Methods:
         holdout   : Evaluates the model using holdout validation.
         bootstrap : Evaluates the model by measuring performance across bootstrap fits.
-
     Attributes:
         dataset       : np.float32 array (units x rows x cols x channels)
         labels        : one-hot encoded np.float32 array (units x rows x cols)
@@ -178,14 +134,15 @@ class Tester(object):
                                          'n_train':1000, 'batch_size':32,
                                          'training_steps':10000}
         results       : dictionary containing test results
-
      This library uses numpy and tensorflow for all operations.
     """
 
-    def __init__(self, dataset, masks, graph, spec, preprocessor = whiten):
+    def __init__(self, dataset, masks, graph, optimizer, loss, spec, preprocessor):
         self.dataset         = {'full':dataset} # An array of images
         self.labels          = {'full':masks}  # An array of per-pixel image labels
         self.graph           = graph            # A TensorFlow graph
+        self.optimizer       = optimizer
+        self.loss            = loss
         self.preprocessor    = types.MethodType(preprocessor, self)    # A configured Preprocessor object - defaults
         self.spec            = spec             # A dictionary specifying the test config.
         self.pp_parameters   = {}               # Populated by preprocessor(..., store_params = True)
@@ -194,38 +151,22 @@ class Tester(object):
 
         # Read the test spec. to determine the test to run.
         if self.spec['mode'] == 'holdout':
-            print('Holdout testing mode initialized. Preprocessing data...')
             self.holdout()
 
     def holdout(self):
         # Fits the model to a subset of the data then calculates its
         # performance on a held-out fraction of the data.
 
-        print('\nSplitting images by class content...')
         # Split the data by image class content
-        ( self.dataset['train'], self.dataset['test'],
-          self.labels['train'],  self.labels['test']  ) = split_dataset(self.dataset['full'],
+        ( self.dataset['train'], self.dataset['valid'],
+          self.labels['train'],  self.labels['valid']  ) = split_dataset(self.dataset['full'],
                                                                         self.labels['full'], fraction = 0.8)
-        print(' Dataset split.')
-        print('\nDataset \t Dim. \t Mem. Usage \n')
-        print('Train  \t {} \t {:06.2f}MB\n'.format(self.dataset['train'].shape,
-                                                   getsizeof(self.dataset['train'])/(10**6)))
-        print('Test   \t {} \t {:06.2f}MB\n'.format(self.dataset['test'].shape,
-                                                   getsizeof(self.dataset['test'])/(10**6)))
 
         # Apply the filter and subsetting - configure the preprocessor on the training data.
-        print('\nPreprocessing training data... ')
         self.dataset['ptrain'], self.labels['ohetrain'] = self.preprocessor(self.dataset['train'],
-                                                                self.labels['train'], train = True)
-        print('Training data preprocessed.\nPreprocessing testing data... ')
-        self.dataset['ptest'], self.labels['ohetest']  = self.preprocessor(self.dataset['test'],
-                                                                self.labels['test'], train = False)
-        print('Testing data preprocessed.')
-        print('\n\nDataset \t Dim. \t Mem. Usage \n')
-        print('PTrain  \t {} \t {:06.2f}MB\n'.format(self.dataset['ptrain'].shape,
-                                                   getsizeof(self.dataset['ptrain'])/(10**6)))
-        print('PTest   \t {} \t {:06.2f}MB\n'.format(self.dataset['ptest'].shape,
-                                                   getsizeof(self.dataset['ptest'])/(10**6)))
+                                                                self.labels['train'], mode = 'train')
+        self.dataset['pvalid'], self.labels['ohevalid']  = self.preprocessor(self.dataset['valid'],
+                                                                self.labels['valid'], mode = 'valid')
 
         # NOTE: by-pixel label masks -> Preprocessor -> ohe label for each image returned
         # NOTE: Preprocessed data is stored to avoid low-level (i.e pixel neighborhood)
@@ -235,8 +176,8 @@ class Tester(object):
 
     def evaluate_model(self):
         with tf.Session(graph = self.graph) as session:
-            print('\nFitting model...')
             # Initialize model variables
+            print('\nFitting model...')
             tf.global_variables_initializer().run()
 
             # Fit the model
@@ -245,16 +186,15 @@ class Tester(object):
                     batch_data, batch_labels = minibatch(self.dataset['ptrain'], self.labels['ohetrain'],
                                                          self.spec['batch_size'], step)
                     fd = {'tf_train_data:0':batch_data, 'tf_train_labels:0':batch_labels}
-                    _, l, pred = session.run([self.graph._nodes_by_name['optimizer'],
-                                              'loss:0',
+                    _, l, pred = session.run([self.optimizer,
+                                              self.loss,
                                               'tf_train_predictions:0'], feed_dict = fd)
 
-                    if step % 50 == 0:
-                        print('\nMinibatch accuracy @ step {}: {:04.2f}%'.format(step, accuracy_score(pred, batch_labels)))
-                        print('\nMinibatch loss @ step {}: {:06.4f}'.format(step, l))
-
-            # Evaluate the model's test performance
-            #test_predictions = session.run(['tf_test_predictions:0'], feed_dict = {'tf_test_data:0':self.dataset['ptest']})
-            #test_accuracy    = accuracy_score(test_predictions, self.labels['ohetest'])
-            #print('\n\nTesting accuracy @ step {}: {:04.2f}%'.format(self.spec['training_steps'], test_accuracy))
-            #test_predictions = mask_ohe(test_predictions, self.labels['train']) # Reshape to original mask dimensions
+                    if step % 500 == 0:
+                        print('Step {}\n-------------'.format(step))
+                        print('\nMinibatch accuracy: {:04.2f}%'.format(accuracy_score(pred, batch_labels)))
+                        print('\nMinibatch loss: {:06.4f}'.format(l))
+                        validation_predictions = session.run('tf_test_predictions:0',
+                                                             feed_dict = {'tf_test_data:0':self.dataset['pvalid']})
+                        print('\nValidation accuracy: {:04.2f}%'.format(accuracy_score(
+                                                             validation_predictions, self.labels['ohevalid'])))
