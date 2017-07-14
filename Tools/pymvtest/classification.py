@@ -182,7 +182,7 @@ class Tester(object):
 
             # Fit the model
             for step in range(self.spec['training_steps']):
-
+            # NOTE: WHY IS THE VALIDATION ACCURACY SO BAD?????
                     batch_data, batch_labels = minibatch(self.dataset['ptrain'], self.labels['ohetrain'],
                                                          self.spec['batch_size'], step)
                     fd = {'tf_train_data:0':batch_data, 'tf_train_labels:0':batch_labels}
@@ -196,5 +196,6 @@ class Tester(object):
                         print('\nMinibatch loss: {:06.4f}'.format(l))
                         validation_predictions = session.run('tf_test_predictions:0',
                                                              feed_dict = {'tf_test_data:0':self.dataset['pvalid']})
+                        print(validation_predictions)
                         print('\nValidation accuracy: {:04.2f}%'.format(accuracy_score(
                                                              validation_predictions, self.labels['ohevalid'])))
