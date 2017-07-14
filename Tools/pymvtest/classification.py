@@ -179,10 +179,9 @@ class Tester(object):
             # Initialize model variables
             print('\nFitting model...')
             tf.global_variables_initializer().run()
-
+            writer = tf.summary.FileWriter('FileWriterOutput', session.graph)
             # Fit the model
             for step in range(self.spec['training_steps']):
-            # NOTE: WHY IS THE VALIDATION ACCURACY SO BAD?????
                     batch_data, batch_labels = minibatch(self.dataset['ptrain'], self.labels['ohetrain'],
                                                          self.spec['batch_size'], step)
                     fd = {'tf_train_data:0':batch_data, 'tf_train_labels:0':batch_labels}
@@ -191,10 +190,10 @@ class Tester(object):
                                               'tf_train_predictions:0'], feed_dict = fd)
 
                     if step % 500 == 0:
-                        print('Step {}\n-------------'.format(step))
-                        print('Minibatch accuracy: {:04.2f}%'.format(accuracy_score(pred, batch_labels)))
-                        print('Minibatch loss: {:06.4f}'.format(l))
+                        print('(Step {:^5d}) Minibatch accuracy: {:>7.2f}%'.format(step, accuracy_score(pred, batch_labels)))
+                        print('(Step {:^5d}) Minibatch loss: {:>12.4f}'.format(step, l))
                         validation_predictions = session.run('tf_test_predictions:0',
                                                              feed_dict = {'tf_test_data:0':self.dataset['pvalid']})
-                        print('Validation accuracy: {:04.2f}%\n'.format(accuracy_score(
+                        print('(Step {:^5d}) Validation accuracy: {:>6.2f}%\n'.format(step, accuracy_score(
                                                              validation_predictions, self.labels['ohevalid'])))
+            writer.close()
