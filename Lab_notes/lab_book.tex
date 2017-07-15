@@ -1378,5 +1378,14 @@ The book specified three models that can be interpreted in terms of hidden varia
 	\item Potential and cost functions (and their normalizing constant - the partition function)
 \end{itemize}
 
+(14:10 - 16:10) Learnt how to branch in git, then refactored TensorFlow training API. Need to add validation performance summary to graph, then add image augmenter. After that, start working on fancier models. Tomorrow I really need to update what I've been working on. I also need to bump accuracy scores to the graph rather than in the Tester. Additionally, I need to make it possible to pass in an image and have the program return a heatmap of crack/nocrack probabilities.
+
 Branching in Git: \texttt{git checkout -b <branchname>}. This creates a new pointer which moves with the commits. When you switch back to another branch, Git will reset the working directory to look like it did last time you committed on that branch. To switch to another branch, use \texttt{git checkout <branchname>}. After making the edits on the new branch, switch back to the master branch and then merge the new branch using \texttt{git merge <branchname>}. If the branch isn't divergent (i.e. the master is reachable by following the branch's history), then all merging will do is move the master to the end of the branch - this is called fast-forwarding. After merging a branch, we can delete it using \texttt{git branch -d <branchname>}. If you create a branch then move the \texttt{master} pointer, later merges will use a slightly different strategy. Instead of moving the \texttt{master} pointer along the branch, they instead find the \texttt{master} and branch's common ancestor, then merge automatically, creating a new commit in the process. If you've edited the same part of the same file in both the \texttt{master} and the branch, then there will be a merge conflict - but don't freak out! No commit has been created yet, and calling \texttt{git status} will show you which file is causing the conflict. Git adds conflict markers to the offending files, so it's easy to see what's causing problems. Remove above/below the \texttt{=======}, save the file, then run \texttt{git add <filename>} to tell Git that the conflict has been resolved. Commit the change and the branch will be merged! Huzzah!
+
+(17:05 - ) Migrating accuracy calculations to graph.
+# Remove accuracy calculations from all other locations (with the exception of prints)
+# Add accuracy variable to graph
+# Add scalar summary to graph
+# Retrieve accuracy scores in session
+
  \end{document}

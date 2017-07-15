@@ -154,14 +154,18 @@ with TF['graph'].as_default():
     TF['training_data']   = tf.placeholder(tf.float32,
                                            [TF['batch_size'], TF['image_size'],
                                                 TF['image_size'], TF['input_channels']],
-                                            name = 'tf_train_data')
+                                            name = 'training_data')
     TF['training_labels'] = tf.placeholder(tf.float32,
                                            [TF['batch_size'], TF['n_classes']],
-                                           name = 'tf_train_labels')
+                                           name = 'training_labels')
     TF['validation_data'] = tf.placeholder(tf.float32,
                                             [None, TF['image_size'], TF['image_size'],
                                              TF['input_channels']],
-                                            name = 'tf_test_data')
+                                            name = 'validation_data')
+    TF['validation_labels'] = tf.placeholder(tf.float32,
+                                            [None, TF['image_size'], TF['image_size'],
+                                            TF['input_channels']],
+                                            name = 'validation_labels')
 
     # Variables
     with tf.name_scope('Variables'):
@@ -190,6 +194,7 @@ with TF['graph'].as_default():
             biases3  = tf.Variable(tf.zeros(TF['n_classes']),
 			name = 'FC_Layer_Biases')
 
+    # Model
     def model(data):
         with tf.name_scope('ConvolutionalLayers'):
             # Layer 1 : 20 x 20 x 1 input ; 10 x 10 x 64 output ; (3 x 3 x 1) x 64 filters ; stride of 2 ; same padding
@@ -227,16 +232,25 @@ with TF['graph'].as_default():
             TF['optimizer'] = tf.train.GradientDescentOptimizer(TF['learning_rate'],
                                     name = 'optimizer').minimize(TF['loss'])
 
-        # Feedback information
         trp = tf.nn.softmax(logits)
 
-    TF['training_predictions'] = tf.identity(trp, name = 'tf_train_predictions')
-
     with tf.name_scope('Validation'):
-        tep = tf.nn.softmax(model(TF['validation_data']))
+        vp  = tf.nn.softmax(model(TF['validation_data']))
 
-    TF['validation_predictions']  = tf.identity(tep, name = 'tf_validation_predictions')
+    # Predictions and Accuracy Scores
+    TF['training_predictions'] = tf.identity(trp, name = 'train_predictions')
+    TF['training_accuracy']    = tf.metrics.accuracy(TF['training_labels'], TF['training_predictions'],
+                                                     name = 'training_accuracy')
+
+    TF['validation_predictions']  = tf.identity(vp, name = 'validation_predictions')
+    TF['validation_accuracy']     = tf.metrics.accuracy(TF['validatoion_labels'], TF['validation_predictions'],
+                                                        name = 'validation_accuracy')
+
+    tf.summary.scalar('TrainingAccuracy', TF['training_accuracy'])
+    tf.summary.scalar('ValidationAccuracy', TF['validation_accuracy'])
+
     TF['summary'] = tf.summary.merge_all()
+
 print('Graph defined.')
 
 ### >> TRAINING << ###

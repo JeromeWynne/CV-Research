@@ -175,6 +175,8 @@ class Tester(object):
         self.tf_validation_labels    = TF['validation_labels']    # Namespace of tensorflow validation labels
         self.tf_training_predictions = TF['training_predictions'] # Namespace of tensorflow training predictions
         self.tf_validation_predictions = TF['validation_predictions']
+        self.tf_training_accuracy    = TF['training_accuracy']
+        self.tf_validation_accuracy  = TF['validation_accuracy']
 
         np.random.seed(self.seed)
 
@@ -217,15 +219,16 @@ class Tester(object):
                     batch_data, batch_labels = minibatch(self.dataset['ptrain'], self.labels['ohetrain'],
                                                          self.batch_size, step)
                     fd = {self.tf_training_data:batch_data, self.tf_training_labels:batch_labels}
-                    s, _, l, pred = session.run([self.tf_summary, self.tf_optimizer, self.tf_loss,
-                                                 self.tf_training_predictions], feed_dict = fd)
+                    s, _, l, tr_acc = session.run([self.tf_summary, self.tf_optimizer, self.tf_loss,
+                                                   self.tf_training_accuracy], feed_dict = fd)
                     writer.add_summary(s, step)
 
                     if step % 500 == 0:
-                        print('(Step {:^5d}) Minibatch accuracy: {:>7.2f}%'.format(step, accuracy_score(pred, batch_labels)))
+                        print('(Step {:^5d}) Minibatch accuracy: {:>7.2f}%'.format(step, tr_acc)))
                         print('(Step {:^5d}) Minibatch loss: {:>12.4f}'.format(step, l))
-                        validation_predictions = session.run(self.tf_validation_predictions,
-                                                             feed_dict = {self.tf_validation_data:self.dataset['pvalid']})
-                        print('(Step {:^5d}) Validation accuracy: {:>6.2f}%\n'.format(step, accuracy_score(
-                                                             validation_predictions, self.labels['ohevalid'])))
+                        val_fd  = { self.tf_validation_data:self.dataset['pvalid'],
+                                    self.tf_validation_labels:self.labels['ohevalid'] }
+                        val_acc = session.run(self.tf_validation_accuracy,
+                                              feed_dict = val_fd)
+                        print('(Step {:^5d}) Validation accuracy: {:>6.2f}%\n'.format(step, val_acc)))
             writer.close()
