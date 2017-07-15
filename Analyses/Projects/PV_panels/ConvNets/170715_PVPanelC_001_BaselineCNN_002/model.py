@@ -171,7 +171,7 @@ with simple_graph.as_default():
             filters2 = tf.Variable(tf.truncated_normal(
                     	           shape = [TF['filter_size'][1], TF['filter_size'][1],
                                             TF['output_channels'][0], TF['output_channels'][1]], stddev = 0.01)
-			                       name = 'Layer_2_Filters',)
+			                       name = 'Layer_2_Filters')
             biases2  = tf.Variable(tf.zeros([TF['output_channels'][1]]),
 			                       name = 'Layer_2_Biases')
         # Fully connected layers
