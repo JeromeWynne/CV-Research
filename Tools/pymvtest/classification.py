@@ -120,47 +120,79 @@ def balance_dataset(dataset, ohe_labels, n_samples):
     balanced_labels     = ohe_labels[chosen_indices, :]
     return balanced_dataset, balaced_labels
 
+
 class Tester(object):
     """
     An agent for running and storing the results of tests on image classifiers.
+
     Methods:
         holdout   : Evaluates the model using holdout validation.
         bootstrap : Evaluates the model by measuring performance across bootstrap fits.
-    Attributes:
-        dataset       : np.float32 array (units x rows x cols x channels)
-        labels        : one-hot encoded np.float32 array (units x rows x cols)
-        graph         : tensorflow graph (inc. processing of images)
-        spec          : dictionary e.g. {'mode':'holdout', 'seed':1,
-                                         'n_train':1000, 'batch_size':32,
-                                         'training_steps':10000}
-        results       : dictionary containing test results
+
+    Arguments:
+        dataset       : np.float32 stack of images (NHWC)
+        masks         : np.float32 stack of binary masks (NHW)
+        TF            : Dictionary containing configuration and tensorflow variables
+                        {'mode':<string 'holdout'>,
+                         'seed':<int>,
+                         'batch_size':<int>,
+                         'training_steps':<int>,
+                         'graph':<Python namespace for the TF graph>,
+                         'optimizer':<Python namespace for optimizer operation>,
+                         'loss':<Python namespace for loss tensor>,
+                         'summary':<Python namespace for summary operation>,
+                         'training_data':<Python namespace for training data tensor>,
+                         'training_labels':<Python namespace for training labels tensor>,
+                         'training_predictions':<Python namespace for training predictions tensor>,
+                         'validation_data':<Python namespace for validation data tensor>
+                         'validation_labels':<Python namespace for validation labels tensor<
+                         'validation_predictions':<Python namespace for validation predictions tensor>,
+                         }
+        preprocessing : def func(self, dataset, masks, mode):
+                        ...
+                        return processed_images, ohe_labels
+
      This library uses numpy and tensorflow for all operations.
     """
 
-    def __init__(self, dataset, masks, graph, optimizer, loss, spec, preprocessor):
+    def __init__(self, dataset, masks, TF, preprocessor):
         self.dataset         = {'full':dataset} # An array of images
-        self.labels          = {'full':masks}  # An array of per-pixel image labels
-        self.graph           = graph            # A TensorFlow graph
-        self.optimizer       = optimizer
-        self.loss            = loss
-        self.preprocessor    = types.MethodType(preprocessor, self)    # A configured Preprocessor object - defaults
-        self.spec            = spec             # A dictionary specifying the test config.
-        self.pp_parameters   = {}               # Populated by preprocessor(..., store_params = True)
+        self.labels          = {'full':masks}   # An array of per-pixel image labels
+        self.mode            = TF['mode']       # String in {'holdout', 'bootstrap'}
+        self.seed            = TF['seed']       # Integer to initialize random number generator
+        self.preprocessor    = types.MethodType(preprocessor, self)    # A preprocessing function - see the example
+        self.pp_parameters   = {}                   # Populated by tne preprocessor function (..., store_params = True)
+        self.training_steps  = TF['training_steps'] # Integer number of training steps
+        self.split_fraction  = TF['split_fraction'] # Train/validation split fraction (whole images)
+        self.batch_size      = TF['batch_size']     # Integer batch size
+        self.tf_loss         = TF['loss']           # Namespace of tensorflow loss tensor
+        self.tf_summary      = TF['summary']        # Namespace of merged summary variables
+        self.tf_graph        = TF['graph']          # A TensorFlow graph
+        self.tf_optimizer    = TF['optimizer']      # Namespace of tensorflow optimizer operation
+        self.tf_training_data        = TF['training_data']        # Nmaespace of tensorflow training dat`
+        self.tf_validation_data      = TF['validation_data']      # Namespace of tensorflow validation data
+        self.tf_training_labels      = TF['training_labels']      # Namespace of tensorflow training labels
+        self.tf_validation_labels    = TF['validation_labels']    # Namespace of tensorflow validation labels
+        self.tf_training_predictions = TF['training_predictions'] # Namespace of tensorflow training predictions
+        self.tf_validation_predictions = TF['validation_prediction']
 
-        np.random.seed(self.spec['seed'])
+        np.random.seed(self.seed)
 
         # Read the test spec. to determine the test to run.
-        if self.spec['mode'] == 'holdout':
+        if self.mode == 'holdout':
             self.holdout()
 
-    def holdout(self):
-        # Fits the model to a subset of the data then calculates its
-        # performance on a held-out fraction of the data.
 
+    def holdout(self):
+        """
+        Fits the model to a subset of the data, then calculates its
+        performance on a held-out fraction of the data.
+        """
         # Split the data by image class content
         ( self.dataset['train'], self.dataset['valid'],
           self.labels['train'],  self.labels['valid']  ) = split_dataset(self.dataset['full'],
-                                                                        self.labels['full'], fraction = 0.8)
+                                                                         self.labels['full'],
+                                                                         fraction = self.split_fraction)
 
         # Apply the filter and subsetting - configure the preprocessor on the training data.
         self.dataset['ptrain'], self.labels['ohetrain'] = self.preprocessor(self.dataset['train'],
@@ -169,31 +201,31 @@ class Tester(object):
                                                                 self.labels['valid'], mode = 'valid')
 
         # NOTE: by-pixel label masks -> Preprocessor -> ohe label for each image returned
-        # NOTE: Preprocessed data is stored to avoid low-level (i.e pixel neighborhood)
-        #       class imbalance problems during training. Test data is left imbalanced.
-        # NOTE: The number of training instances to be used should be used by preprocessing()
-        #       and should be specified in spec (e.g. spec = { ... 'ntrain':5000})
+
 
     def evaluate_model(self):
-        with tf.Session(graph = self.graph) as session:
-            # Initialize model variables
+        """
+        Instantiates and executes a tensorflow session with the Tester's graph.
+        """
+        with tf.Session(graph = self.tf_graph) as session:
+
             print('\nFitting model...')
             tf.global_variables_initializer().run()
             writer = tf.summary.FileWriter('FileWriterOutput', session.graph)
-            # Fit the model
-            for step in range(self.spec['training_steps']):
+
+            for step in range(self.training_steps):
                     batch_data, batch_labels = minibatch(self.dataset['ptrain'], self.labels['ohetrain'],
-                                                         self.spec['batch_size'], step)
-                    fd = {'tf_train_data:0':batch_data, 'tf_train_labels:0':batch_labels}
-                    _, l, pred = session.run([self.optimizer,
-                                              self.loss,
-                                              'tf_train_predictions:0'], feed_dict = fd)
+                                                         self.batch_size, step)
+                    fd = {self.tf_training_data:batch_data, self.tf_training_labels:batch_labels}
+                    s, _, l, pred = session.run([self.tf_summary, self.tf_optimizer, self.tf_loss,
+                                                 self.tf_training_predictions], feed_dict = fd)
+                    writer.add_summary(s, step)
 
                     if step % 500 == 0:
                         print('(Step {:^5d}) Minibatch accuracy: {:>7.2f}%'.format(step, accuracy_score(pred, batch_labels)))
                         print('(Step {:^5d}) Minibatch loss: {:>12.4f}'.format(step, l))
-                        validation_predictions = session.run('tf_test_predictions:0',
-                                                             feed_dict = {'tf_test_data:0':self.dataset['pvalid']})
+                        validation_predictions = session.run(self.tf_validation_predictions,
+                                                             feed_dict = {self.tf_validation_data:self.dataset['pvalid']})
                         print('(Step {:^5d}) Validation accuracy: {:>6.2f}%\n'.format(step, accuracy_score(
                                                              validation_predictions, self.labels['ohevalid'])))
             writer.close()
