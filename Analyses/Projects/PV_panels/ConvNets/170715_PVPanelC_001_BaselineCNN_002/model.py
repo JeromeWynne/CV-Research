@@ -148,20 +148,13 @@ TF = {
 
 with TF['graph'].as_default():
     # Placeholders and constants
-    TF['training_data']   = tf.placeholder(tf.float32,
-                                           [TF['batch_size'], TF['image_size'],
-                                                TF['image_size'], TF['input_channels']],
-                                            name = 'training_data')
-    TF['training_labels'] = tf.placeholder(tf.float32,
-                                           [TF['batch_size'], TF['n_classes']],
-                                           name = 'training_labels')
-    TF['validation_data'] = tf.placeholder(tf.float32,
-                                            [None, TF['image_size'], TF['image_size'],
-                                             TF['input_channels']],
-                                            name = 'validation_data')
-    TF['validation_labels'] = tf.placeholder(tf.float32,
-                                            [None, TF{'n_classes'}],
-                                            name = 'validation_labels')
+    TF['data']   = tf.placeholder(tf.float32,
+                                 [None, TF['image_size'],
+                                 TF['image_size'], TF['input_channels']],
+                                name = 'data')
+    TF['labels'] = tf.placeholder(tf.float32,
+                                  [None, TF['n_classes']],
+                                  name = 'labels')
 
     # Variables
     with tf.name_scope('Variables'):
@@ -210,17 +203,17 @@ with TF['graph'].as_default():
             shape  = tf.shape(act)
             act    = tf.reshape(act, [shape[0], shape[1]*shape[2]*shape[3]])
             logits = tf.nn.relu(tf.matmul(act, weights3) + biases3, name = 'FC_Layer_Logits')
-            return logits
+
+        return logits
 
     # Loss and optimizer
+    logits = model(TF['data'])
+
     with tf.name_scope('Training'):
-
-        logits = model(TF['training_data'])
-
         with tf.name_scope('Loss'):
             TF['loss'] = tf.reduce_mean(
                             tf.nn.softmax_cross_entropy_with_logits(logits = logits,
-                                labels = TF['training_labels']),
+                                labels = TF['labels']),
                             name = 'loss')
             tf.summary.scalar('CrossEntropy', TF['loss'])
 
@@ -228,22 +221,13 @@ with TF['graph'].as_default():
             TF['optimizer'] = tf.train.GradientDescentOptimizer(TF['learning_rate'],
                                     name = 'optimizer').minimize(TF['loss'])
 
-        trp = tf.nn.softmax(logits)
-
-    with tf.name_scope('Validation'):
-        vp  = tf.nn.softmax(model(TF['validation_data']))
-
     # Predictions and Accuracy Scores
-    TF['training_predictions'] = tf.identity(trp, name = 'train_predictions')
-    TF['training_accuracy']    = tf.metrics.accuracy(TF['training_labels'], TF['training_predictions'],
-                                                     name = 'training_accuracy')
+    TF['predictions'] = tf.nn.softmax(logits, name = 'predictions')
 
-    TF['validation_predictions']  = tf.identity(vp, name = 'validation_predictions')
-    TF['validation_accuracy']     = tf.metrics.accuracy(TF['validation_labels'], TF['validation_predictions'],
-                                                        name = 'validation_accuracy')
-
-    tf.summary.scalar('TrainingAccuracy', TF['training_accuracy'])
-    tf.summary.scalar('ValidationAccuracy', TF['validation_accuracy'])
+    TF['accuracy']    = tf.contrib.metrics.accuracy(tf.argmax(TF['labels'], axis = 1),
+                                                    tf.argmax(TF['predictions'], axis = 1),
+                                                    name = 'accuracy')
+    tf.summary.scalar('Accuracy', TF['accuracy'])
 
     TF['summary'] = tf.summary.merge_all()
 

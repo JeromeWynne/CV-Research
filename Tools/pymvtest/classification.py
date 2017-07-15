@@ -169,14 +169,10 @@ class Tester(object):
         self.tf_summary      = TF['summary']        # Namespace of merged summary variables
         self.tf_graph        = TF['graph']          # A TensorFlow graph
         self.tf_optimizer    = TF['optimizer']      # Namespace of tensorflow optimizer operation
-        self.tf_training_data        = TF['training_data']        # Nmaespace of tensorflow training dat`
-        self.tf_validation_data      = TF['validation_data']      # Namespace of tensorflow validation data
-        self.tf_training_labels      = TF['training_labels']      # Namespace of tensorflow training labels
-        self.tf_validation_labels    = TF['validation_labels']    # Namespace of tensorflow validation labels
-        self.tf_training_predictions = TF['training_predictions'] # Namespace of tensorflow training predictions
-        self.tf_validation_predictions = TF['validation_predictions']
-        self.tf_training_accuracy    = TF['training_accuracy']
-        self.tf_validation_accuracy  = TF['validation_accuracy']
+        self.tf_data         = TF['data']        # Namespace of tensorflow data
+        self.tf_labels       = TF['labels']      # Namespace of tensorflow labels
+        self.tf_predictions  = TF['predictions'] # Namespace of tensorflow predictions
+        self.tf_accuracy     = TF['accuracy']    # Namespace of tensorflow accuracy
 
         np.random.seed(self.seed)
 
@@ -201,7 +197,6 @@ class Tester(object):
                                                                 self.labels['train'], mode = 'train')
         self.dataset['pvalid'], self.labels['ohevalid']  = self.preprocessor(self.dataset['valid'],
                                                                 self.labels['valid'], mode = 'valid')
-
         # NOTE: by-pixel label masks -> Preprocessor -> ohe label for each image returned
 
 
@@ -212,23 +207,29 @@ class Tester(object):
         with tf.Session(graph = self.tf_graph) as session:
 
             print('\nFitting model...')
-            tf.global_variables_initializer().run()
-            writer = tf.summary.FileWriter('FileWriterOutput', session.graph)
+            session.run(tf.global_variables_initializer())
+            train_writer  = tf.summary.FileWriter('FileWriterOutput/train', session.graph)
+            valid_writer  = tf.summary.FileWriter('FileWriterOutput/valid', session.graph)
 
             for step in range(self.training_steps):
-                    batch_data, batch_labels = minibatch(self.dataset['ptrain'], self.labels['ohetrain'],
-                                                         self.batch_size, step)
-                    fd = {self.tf_training_data:batch_data, self.tf_training_labels:batch_labels}
-                    s, _, l, tr_acc = session.run([self.tf_summary, self.tf_optimizer, self.tf_loss,
-                                                   self.tf_training_accuracy], feed_dict = fd)
-                    writer.add_summary(s, step)
+                    if step % 100 == 0:
+                        val_fd  = { self.tf_data : self.dataset['pvalid'],
+                                    self.tf_labels : self.labels['ohevalid'] }
+                        s, val_acc = session.run([self.tf_summary, self.tf_accuracy],
+                                                  feed_dict = val_fd)
+                        if step != 0:
+                            print('(Step {:^5d}) Minibatch accuracy: {:>7.2f}%'.format(step, tr_acc))
+                            print('(Step {:^5d}) Minibatch loss: {:>12.4f}'.format(step, l))
 
-                    if step % 500 == 0:
-                        print('(Step {:^5d}) Minibatch accuracy: {:>7.2f}%'.format(step, tr_acc)))
-                        print('(Step {:^5d}) Minibatch loss: {:>12.4f}'.format(step, l))
-                        val_fd  = { self.tf_validation_data:self.dataset['pvalid'],
-                                    self.tf_validation_labels:self.labels['ohevalid'] }
-                        val_acc = session.run(self.tf_validation_accuracy,
-                                              feed_dict = val_fd)
-                        print('(Step {:^5d}) Validation accuracy: {:>6.2f}%\n'.format(step, val_acc)))
+                        print('(Step {:^5d}) Validation accuracy: {:>6.2f}%\n'.format(step, val_acc))
+                        
+                        valid_writer.add_summary(s, step)
+                    else:
+                        batch_data, batch_labels = minibatch(self.dataset['ptrain'], self.labels['ohetrain'],
+                                                             self.batch_size, step)
+                        fd = {self.tf_data:batch_data, self.tf_labels:batch_labels}
+                        s, _, l, tr_acc = session.run([self.tf_summary, self.tf_optimizer, self.tf_loss,
+                                                       self.tf_accuracy], feed_dict = fd)
+                        train_writer.add_summary(s, step)
+
             writer.close()
