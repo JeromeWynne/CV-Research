@@ -144,10 +144,7 @@ TF = {
       'training_steps':5001,
       'learning_rate':0.05,
       'graph':tf.Graph(),
-      'validation_labels':{}
       } # Master dictionary
-
-TF[''] = tf.Graph()
 
 with TF['graph'].as_default():
     # Placeholders and constants
@@ -243,7 +240,7 @@ with TF['graph'].as_default():
                                                      name = 'training_accuracy')
 
     TF['validation_predictions']  = tf.identity(vp, name = 'validation_predictions')
-    TF['validation_accuracy']     = tf.metrics.accuracy(TF['validatoion_labels'], TF['validation_predictions'],
+    TF['validation_accuracy']     = tf.metrics.accuracy(TF['validation_labels'], TF['validation_predictions'],
                                                         name = 'validation_accuracy')
 
     tf.summary.scalar('TrainingAccuracy', TF['training_accuracy'])
