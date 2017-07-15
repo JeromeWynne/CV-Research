@@ -218,11 +218,11 @@ class Tester(object):
                         s, val_acc = session.run([self.tf_summary, self.tf_accuracy],
                                                   feed_dict = val_fd)
                         if step != 0:
-                            print('(Step {:^5d}) Minibatch accuracy: {:>7.2f}%'.format(step, tr_acc))
+                            print('(Step {:^5d}) Minibatch accuracy: {:>8.2f}'.format(step, tr_acc))
                             print('(Step {:^5d}) Minibatch loss: {:>12.4f}'.format(step, l))
 
-                        print('(Step {:^5d}) Validation accuracy: {:>6.2f}%\n'.format(step, val_acc))
-                        
+                        print('(Step {:^5d}) Validation accuracy: {:>7.2f}\n'.format(step, val_acc))
+
                         valid_writer.add_summary(s, step)
                     else:
                         batch_data, batch_labels = minibatch(self.dataset['ptrain'], self.labels['ohetrain'],
@@ -232,4 +232,5 @@ class Tester(object):
                                                        self.tf_accuracy], feed_dict = fd)
                         train_writer.add_summary(s, step)
 
-            writer.close()
+            train_writer.close()
+            valid_writer.close()
