@@ -160,8 +160,7 @@ with TF['graph'].as_default():
                                              TF['input_channels']],
                                             name = 'validation_data')
     TF['validation_labels'] = tf.placeholder(tf.float32,
-                                            [None, TF['image_size'], TF['image_size'],
-                                            TF['input_channels']],
+                                            [None, TF{'n_classes'}],
                                             name = 'validation_labels')
 
     # Variables
