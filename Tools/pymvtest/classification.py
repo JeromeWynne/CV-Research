@@ -174,7 +174,7 @@ class Tester(object):
         self.tf_training_labels      = TF['training_labels']      # Namespace of tensorflow training labels
         self.tf_validation_labels    = TF['validation_labels']    # Namespace of tensorflow validation labels
         self.tf_training_predictions = TF['training_predictions'] # Namespace of tensorflow training predictions
-        self.tf_validation_predictions = TF['validation_prediction']
+        self.tf_validation_predictions = TF['validation_predictions']
 
         np.random.seed(self.seed)
 

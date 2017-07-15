@@ -140,22 +140,27 @@ TF = {
       'filter_size':[3, 3],
       'seed':1,
       'mode':'holdout',
+      'split_fraction':0.8,
       'training_steps':5001,
+      'learning_rate':0.05,
+      'graph':tf.Graph(),
+      'validation_labels':{}
       } # Master dictionary
 
-simple_graph = tf.Graph()
+TF[''] = tf.Graph()
 
-with simple_graph.as_default():
+with TF['graph'].as_default():
     # Placeholders and constants
     TF['training_data']   = tf.placeholder(tf.float32,
                                            [TF['batch_size'], TF['image_size'],
-                                                TF['image+_size'], TF['input_channels']],
+                                                TF['image_size'], TF['input_channels']],
                                             name = 'tf_train_data')
     TF['training_labels'] = tf.placeholder(tf.float32,
                                            [TF['batch_size'], TF['n_classes']],
                                            name = 'tf_train_labels')
     TF['validation_data'] = tf.placeholder(tf.float32,
-                                            [None, image_size, image_size, n_channels],
+                                            [None, TF['image_size'], TF['image_size'],
+                                             TF['input_channels']],
                                             name = 'tf_test_data')
 
     # Variables
@@ -180,7 +185,7 @@ with simple_graph.as_default():
                                    shape = [TF['output_channels'][1] *
                                                 TF['image_size'] *
                                                 TF['image_size'],
-                                                TF['n_classes'], stddev = 0.01),
+                                                TF['n_classes']], stddev = 0.01),
 			name = 'FC_Layer_Weights')
             biases3  = tf.Variable(tf.zeros(TF['n_classes']),
 			name = 'FC_Layer_Biases')
@@ -209,34 +214,35 @@ with simple_graph.as_default():
     # Loss and optimizer
     with tf.name_scope('Training'):
 
-        logits = model(tf_train_data)
+        logits = model(TF['training_data'])
 
-        with tf.name_scope('Loss'):i
+        with tf.name_scope('Loss'):
             TF['loss'] = tf.reduce_mean(
                             tf.nn.softmax_cross_entropy_with_logits(logits = logits,
                                 labels = TF['training_labels']),
                             name = 'loss')
-    	    tf.summary.scalar(loss, name = 'CrossEntropy')
+            tf.summary.scalar('CrossEntropy', TF['loss'])
 
         with tf.name_scope('Optimizer'):
-            TF['optimizer'] = tf.train.GradientDescentOptimizer(0.05, name = 'optimizer').minimize(loss)
+            TF['optimizer'] = tf.train.GradientDescentOptimizer(TF['learning_rate'],
+                                    name = 'optimizer').minimize(TF['loss'])
 
         # Feedback information
         trp = tf.nn.softmax(logits)
 
     TF['training_predictions'] = tf.identity(trp, name = 'tf_train_predictions')
 
-    with tf.name_scope('Testing'):
-        tep = tf.nn.softmax(model(tf_test_data))
+    with tf.name_scope('Validation'):
+        tep = tf.nn.softmax(model(TF['validation_data']))
 
-    TF['validation_predictions']  = tf.identity(tep, name = 'tf_test_predictions')
-    merged = tf.summary.merge_all()
+    TF['validation_predictions']  = tf.identity(tep, name = 'tf_validation_predictions')
+    TF['summary'] = tf.summary.merge_all()
 print('Graph defined.')
 
 ### >> TRAINING << ###
 
-print('{} training iterations.'.format(spec['training_steps']))
-print('{} units per batch.'.format(spec['batch_size']))
+print('{} training iterations.'.format(TF['training_steps']))
+print('{} units per batch.'.format(TF['batch_size']))
 
 tester = classification.Tester(dataset      = images,
                                masks        = masks,
