@@ -194,7 +194,7 @@ class Tester(object):
         self.tf_predictions  = TF['predictions'] # Namespace of tensorflow predictions
         self.tf_accuracy     = TF['accuracy']    # Namespace of tensorflow accuracy
         self.tf_train_summary = TF['train_summary']
-        self.tf_test_summary = TF['test_summary']
+        self.tf_test_summary  = TF['test_summary']
 
         np.random.seed(self.seed)
 
@@ -229,6 +229,11 @@ class Tester(object):
                                                                 self.labels['test'],  mode = 'test')
         # NOTE: by-pixel label masks -> Preprocessor -> ohe label for each image returned
 
+        # Write preprocessed image locally
+        from scipy.misc import imsave
+        test_img = (self.dataset['ptest']*self.pp_parameters['std'] + self.pp_parameters['mean'])[:, 10, 10, 0]
+        imsave('./test_img.png', np.reshape(test_img, [100, 100]).astype(np.uint8))
+
 
     def evaluate_model(self):
         """
@@ -262,15 +267,15 @@ class Tester(object):
                                                              self.batch_size, step)
                         batch_data = augment_images(batch_data)
                         fd = {self.tf_data:batch_data, self.tf_labels:batch_labels}
-                        s, _ = session.run([self.tf_train_summary, self.tf_optimizer], feed_dict = fd)
-                        
+                        s, _, l, tr_acc = session.run([self.tf_train_summary, self.tf_optimizer, self.tf_loss,
+                                                       self.tf_accuracy], feed_dict = fd)
                         train_writer.add_summary(s, step)
 
             # Testing
             test_fd = { self.tf_data : self.dataset['ptest'],
                          self.tf_labels : self.labels['ohetest']}
-            s       = session.run([self.tf_test_summary])
-            test_writer.add_summary(s, 0)
+            s       = session.run(self.tf_test_summary, feed_dict = test_fd)
+            test_writer.add_summary(s, self.training_steps)
 
             train_writer.close()
             valid_writer.close()
