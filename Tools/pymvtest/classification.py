@@ -21,7 +21,7 @@ import types
 # > Tester       - an agent for preprocessing data, running tests, and
 #                  reporting test results.
 
-def split_dataset(dataset, labels, fraction=0.8):
+def split_dataset(dataset, labels, fraction=0.8, n=None):
     """
     Splits the dataset images and labels according to the classes they contain.
     Args:
@@ -39,22 +39,35 @@ def split_dataset(dataset, labels, fraction=0.8):
         none
     """
 
-    positive_ix   = np.array(np.nonzero(np.sum(np.sum(labels == 1., axis = 2), axis = 1))).flatten() # Indices of images containing positive class
-    negative_ix   = np.array(np.nonzero(np.sum(np.sum(labels == 0., axis = 2), axis = 1))).flatten() # Indices of images containing negative class
 
-    rnd_pos_ix    = np.random.choice(positive_ix,
-                                     size    = int(fraction*positive_ix.shape[0]),
-                                     replace = False) # Subset of posti indices
-    rnd_neg_ix    = np.random.choice(negative_ix,
-                                     size    = int(fraction*negative_ix.shape[0]),
-                                     replace = False)
-    mask          = np.zeros([labels.shape[0]]).astype(bool)
-    mask[rnd_pos_ix] = True
-    mask[rnd_neg_ix] = True
-    train_images  = dataset[mask, :, :, :]
-    train_labels  = labels[mask, :, :]
-    test_images   = dataset[np.logical_not(mask), :, :, :]
-    test_labels   = labels[np.logical_not(mask), :, :]
+    if n is not None:
+            test_ix  = np.random.randint(0, dataset.shape[0], n)
+            train_ix = [i for i in range(dataset.shape[0]) if i not in test_ix]
+            train_images = dataset[train_ix, :, :, :]
+            train_labels = labels[train_ix, :, :]
+            test_images  = dataset[test_ix, :, :, :]
+            test_labels  = labels[test_ix, :, :]
+
+    if n is None:
+            positive_ix   = np.array(np.nonzero(
+                                        np.sum(np.sum(labels == 1., axis = 2), axis = 1))).flatten() # Indices of images containing positive class
+            negative_ix   = np.array(np.nonzero(
+                                        np.sum(np.sum(labels == 0., axis = 2), axis = 1))).flatten() # Indices of images containing negative class
+            size = int(fraction*positive_ix.shape[0])
+            rnd_pos_ix    = np.random.choice(positive_ix,
+                                             size    = size,
+                                             replace = False) # Subset of posti indices
+            rnd_neg_ix    = np.random.choice(negative_ix,
+                                             size    = size,
+                                             replace = False)
+
+            mask          = np.zeros([labels.shape[0]]).astype(bool)
+            mask[rnd_pos_ix] = True
+            mask[rnd_neg_ix] = True
+            train_images  = dataset[mask, :, :, :]
+            train_labels  = labels[mask, :, :]
+            test_images   = dataset[np.logical_not(mask), :, :, :]
+            test_labels   = labels[np.logical_not(mask), :, :]
 
     return train_images, test_images, train_labels, test_labels
 
@@ -120,80 +133,150 @@ def balance_dataset(dataset, ohe_labels, n_samples):
     balanced_labels     = ohe_labels[chosen_indices, :]
     return balanced_dataset, balaced_labels
 
+def augment_images(dataset):
+    """
+        Augments images. Configure as needed. Dataset is a stack of images.
+    """
+    if np.random.randint(2): dataset = np.flip(dataset, axis = 1)
+    if np.random.randint(2): dataset = np.flip(dataset, axis = 2)
+    return dataset
+
+
 class Tester(object):
     """
     An agent for running and storing the results of tests on image classifiers.
+
     Methods:
         holdout   : Evaluates the model using holdout validation.
         bootstrap : Evaluates the model by measuring performance across bootstrap fits.
-    Attributes:
-        dataset       : np.float32 array (units x rows x cols x channels)
-        labels        : one-hot encoded np.float32 array (units x rows x cols)
-        graph         : tensorflow graph (inc. processing of images)
-        spec          : dictionary e.g. {'mode':'holdout', 'seed':1,
-                                         'n_train':1000, 'batch_size':32,
-                                         'training_steps':10000}
-        results       : dictionary containing test results
+
+    Arguments:
+        dataset       : np.float32 stack of images (NHWC)
+        masks         : np.float32 stack of binary masks (NHW)
+        TF            : Dictionary containing configuration and tensorflow variables
+                        {'mode':<string 'holdout'>,
+                         'seed':<int>,
+                         'batch_size':<int>,
+                         'training_steps':<int>,
+                         'graph':<Python namespace for the TF graph>,
+                         'optimizer':<Python namespace for optimizer operation>,
+                         'loss':<Python namespace for loss tensor>,
+                         'summary':<Python namespace for summary operation>,
+                         'training_data':<Python namespace for training data tensor>,
+                         'training_labels':<Python namespace for training labels tensor>,
+                         'training_predictions':<Python namespace for training predictions tensor>,
+                         'validation_data':<Python namespace for validation data tensor>
+                         'validation_labels':<Python namespace for validation labels tensor<
+                         'validation_predictions':<Python namespace for validation predictions tensor>,
+                         }
+        preprocessing : def func(self, dataset, masks, mode):
+                        ...
+                        return processed_images, ohe_labels
+
      This library uses numpy and tensorflow for all operations.
     """
 
-    def __init__(self, dataset, masks, graph, optimizer, loss, spec, preprocessor):
+    def __init__(self, dataset, masks, TF, preprocessor):
         self.dataset         = {'full':dataset} # An array of images
-        self.labels          = {'full':masks}  # An array of per-pixel image labels
-        self.graph           = graph            # A TensorFlow graph
-        self.optimizer       = optimizer
-        self.loss            = loss
-        self.preprocessor    = types.MethodType(preprocessor, self)    # A configured Preprocessor object - defaults
-        self.spec            = spec             # A dictionary specifying the test config.
-        self.pp_parameters   = {}               # Populated by preprocessor(..., store_params = True)
+        self.labels          = {'full':masks}   # An array of per-pixel image labels
+        self.mode            = TF['mode']       # String in {'holdout', 'bootstrap'}
+        self.seed            = TF['seed']       # Integer to initialize random number generator
+        self.preprocessor    = types.MethodType(preprocessor, self)    # A preprocessing function - see the example
+        self.pp_parameters   = {}                   # Populated by tne preprocessor function (..., store_params = True)
+        self.training_steps  = TF['training_steps'] # Integer number of training steps
+        self.split_fraction  = TF['split_fraction'] # Train/validation split fraction (whole images)
+        self.batch_size      = TF['batch_size']     # Integer batch size
+        self.tf_loss         = TF['loss']           # Namespace of tensorflow loss tensor
+        self.tf_graph        = TF['graph']          # A TensorFlow graph
+        self.tf_optimizer    = TF['optimizer']      # Namespace of tensorflow optimizer operation
+        self.tf_data         = TF['data']        # Namespace of tensorflow data
+        self.tf_labels       = TF['labels']      # Namespace of tensorflow labels
+        self.tf_predictions  = TF['predictions'] # Namespace of tensorflow predictions
+        self.tf_accuracy     = TF['accuracy']    # Namespace of tensorflow accuracy
+        self.tf_train_summary = TF['train_summary']
+        self.tf_test_summary  = TF['test_summary']
 
-        np.random.seed(self.spec['seed'])
+        np.random.seed(self.seed)
 
         # Read the test spec. to determine the test to run.
-        if self.spec['mode'] == 'holdout':
+        if self.mode == 'holdout':
             self.holdout()
 
-    def holdout(self):
-        # Fits the model to a subset of the data then calculates its
-        # performance on a held-out fraction of the data.
 
-        # Split the data by image class content
+    def holdout(self):
+        """
+        Fits the model to a subset of the data, then calculates its
+        performance on a held-out fraction of the data.
+        """
+        # Extract one query image for testing
+        ( self.dataset['full'], self.dataset['test'],
+          self.labels['full'], self.labels['test']    ) = split_dataset(self.dataset['full'],
+                                                                        self.labels['full'],
+                                                                        n = 1)
+
+        # Split the rest of the data by image class content
         ( self.dataset['train'], self.dataset['valid'],
           self.labels['train'],  self.labels['valid']  ) = split_dataset(self.dataset['full'],
-                                                                        self.labels['full'], fraction = 0.8)
+                                                                         self.labels['full'],
+                                                                         fraction = self.split_fraction)
 
         # Apply the filter and subsetting - configure the preprocessor on the training data.
         self.dataset['ptrain'], self.labels['ohetrain'] = self.preprocessor(self.dataset['train'],
                                                                 self.labels['train'], mode = 'train')
         self.dataset['pvalid'], self.labels['ohevalid']  = self.preprocessor(self.dataset['valid'],
                                                                 self.labels['valid'], mode = 'valid')
-
+        self.dataset['ptest'], self.labels['ohetest']    = self.preprocessor(self.dataset['test'],
+                                                                self.labels['test'],  mode = 'test')
         # NOTE: by-pixel label masks -> Preprocessor -> ohe label for each image returned
-        # NOTE: Preprocessed data is stored to avoid low-level (i.e pixel neighborhood)
-        #       class imbalance problems during training. Test data is left imbalanced.
-        # NOTE: The number of training instances to be used should be used by preprocessing()
-        #       and should be specified in spec (e.g. spec = { ... 'ntrain':5000})
+
+        # Write preprocessed image locally
+        from scipy.misc import imsave
+        test_img = (self.dataset['ptest']*self.pp_parameters['std'] + self.pp_parameters['mean'])[:, 10, 10, 0]
+        imsave('./test_img.png', np.reshape(test_img, [100, 100]).astype(np.uint8))
+
 
     def evaluate_model(self):
-        with tf.Session(graph = self.graph) as session:
-            # Initialize model variables
-            print('\nFitting model...')
-            tf.global_variables_initializer().run()
-            writer = tf.summary.FileWriter('FileWriterOutput', session.graph)
-            # Fit the model
-            for step in range(self.spec['training_steps']):
-                    batch_data, batch_labels = minibatch(self.dataset['ptrain'], self.labels['ohetrain'],
-                                                         self.spec['batch_size'], step)
-                    fd = {'tf_train_data:0':batch_data, 'tf_train_labels:0':batch_labels}
-                    _, l, pred = session.run([self.optimizer,
-                                              self.loss,
-                                              'tf_train_predictions:0'], feed_dict = fd)
+        """
+        Instantiates and executes a tensorflow session with the Tester's graph.
+        """
+        with tf.Session(graph = self.tf_graph) as session:
 
-                    if step % 500 == 0:
-                        print('(Step {:^5d}) Minibatch accuracy: {:>7.2f}%'.format(step, accuracy_score(pred, batch_labels)))
-                        print('(Step {:^5d}) Minibatch loss: {:>12.4f}'.format(step, l))
-                        validation_predictions = session.run('tf_test_predictions:0',
-                                                             feed_dict = {'tf_test_data:0':self.dataset['pvalid']})
-                        print('(Step {:^5d}) Validation accuracy: {:>6.2f}%\n'.format(step, accuracy_score(
-                                                             validation_predictions, self.labels['ohevalid'])))
-            writer.close()
+            print('\nFitting model...')
+            session.run(tf.global_variables_initializer())
+            train_writer  = tf.summary.FileWriter('FileWriterOutput/train', session.graph)
+            valid_writer  = tf.summary.FileWriter('FileWriterOutput/valid', session.graph)
+            test_writer   = tf.summary.FileWriter('FileWriterOutput/test',  session.graph)
+
+            for step in range(self.training_steps):
+                    if step % 100 == 0:
+                        val_fd  = { self.tf_data : self.dataset['pvalid'],
+                                    self.tf_labels : self.labels['ohevalid'] }
+                        s, val_acc, val_loss = session.run([self.tf_train_summary,
+                                                            self.tf_accuracy, self.tf_loss],
+                                                            feed_dict = val_fd)
+                        if step != 0:
+                            print('(Step {:^5d}) Minibatch accuracy: {:>8.2f}'.format(step, tr_acc))
+                            print('(Step {:^5d}) Minibatch loss: {:>12.4f}'.format(step, l))
+
+                        print('(Step {:^5d}) Validation accuracy: {:>7.2f}\n'.format(step, val_acc))
+
+                        valid_writer.add_summary(s, step)
+
+                    else:
+                        batch_data, batch_labels = minibatch(self.dataset['ptrain'], self.labels['ohetrain'],
+                                                             self.batch_size, step)
+                        batch_data = augment_images(batch_data)
+                        fd = {self.tf_data:batch_data, self.tf_labels:batch_labels}
+                        s, _, l, tr_acc = session.run([self.tf_train_summary, self.tf_optimizer, self.tf_loss,
+                                                       self.tf_accuracy], feed_dict = fd)
+                        train_writer.add_summary(s, step)
+
+            # Testing
+            test_fd = { self.tf_data : self.dataset['ptest'],
+                         self.tf_labels : self.labels['ohetest']}
+            s       = session.run(self.tf_test_summary, feed_dict = test_fd)
+            test_writer.add_summary(s, self.training_steps)
+
+            train_writer.close()
+            valid_writer.close()
+            test_writer.close()
