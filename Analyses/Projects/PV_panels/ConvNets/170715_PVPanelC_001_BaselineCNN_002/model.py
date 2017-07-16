@@ -122,7 +122,7 @@ def preprocessing(self, dataset, masks, mode):
 
 
 ##============= SCRIPT =================##
-print('\nModel initialized.')
+print('\nTester initialized.')
 ### >> DATA IMPORT << ##
 images = np.array([np.expand_dims(imread(fp), axis = -1)
 			for fp in glob('../data/resized-images/*.png')])
@@ -148,13 +148,14 @@ TF = {
 
 with TF['graph'].as_default():
     # Placeholders and constants
-    TF['data']   = tf.placeholder(tf.float32,
-                                 [None, TF['image_size'],
-                                 TF['image_size'], TF['input_channels']],
-                                name = 'data')
-    TF['labels'] = tf.placeholder(tf.float32,
-                                  [None, TF['n_classes']],
-                                  name = 'labels')
+    with tf.name_scope('Inputs')
+        TF['data']   = tf.placeholder(tf.float32,
+                                     [None, TF['image_size'],
+                                     TF['image_size'], TF['input_channels']],
+                                    name = 'data')
+        TF['labels'] = tf.placeholder(tf.float32,
+                                      [None, TF['n_classes']],
+                                      name = 'labels')
 
     # Variables
     with tf.name_scope('Variables'):
@@ -179,9 +180,9 @@ with TF['graph'].as_default():
                                                 TF['image_size'] *
                                                 TF['image_size'],
                                                 TF['n_classes']], stddev = 0.01),
-			name = 'FC_Layer_Weights')
+			                       name = 'FC_Layer_Weights')
             biases3  = tf.Variable(tf.zeros(TF['n_classes']),
-			name = 'FC_Layer_Biases')
+			                       name = 'FC_Layer_Biases')
 
     # Model
     def model(data):
@@ -222,19 +223,25 @@ with TF['graph'].as_default():
                                     name = 'optimizer').minimize(TF['loss'])
 
     # Predictions and Accuracy Scores
-    TF['predictions'] = tf.nn.softmax(logits, name = 'predictions')
+    with tf.name_scope('PredictionsAndScoring'):
+        TF['predictions'] = tf.nn.softmax(logits, name = 'predictions')
 
-    TF['accuracy']    = tf.contrib.metrics.accuracy(tf.argmax(TF['labels'], axis = 1),
-                                                    tf.argmax(TF['predictions'], axis = 1),
-                                                    name = 'accuracy')
-    tf.summary.scalar('Accuracy', TF['accuracy'])
+        TF['training_accuracy']    = tf.contrib.metrics.accuracy(tf.argmax(TF['labels'], axis = 1),
+                                                        tf.argmax(TF['predictions'], axis = 1),
+                                                        name = 'training_accuracy')
+        tf.summary.scalar('TrainingAccuracy', TF['training_accuracy'])
+
+        TF['validation_accuracy']  = tf.contrib.metrics.accuracy(tf.argmax(TF['labels'], axis = 1),
+                                                        tf.argmax(TF['predictions'], axis = 1),
+                                                        name = 'validation_accuracy')
+        tf.summary.scalar('ValidationAccuracy', TF['validation_accuracy'])
 
     TF['summary'] = tf.summary.merge_all()
 
 print('Graph defined.')
 
-### >> TRAINING << ###
 
+### >> TRAINING << ###
 print('{} training iterations.'.format(TF['training_steps']))
 print('{} units per batch.'.format(TF['batch_size']))
 

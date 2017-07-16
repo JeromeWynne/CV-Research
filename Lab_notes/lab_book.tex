@@ -1361,7 +1361,7 @@ The book specified three models that can be interpreted in terms of hidden varia
 (12:10 - 20:30) Convolutional networks for cracked panel detection. Wrestling with TensorFlow.
 
 \labday{Friday, 14th July 2017}
-(08:30 - 11:00, 12:00 - 15:00) Learned how to use TensorBoard (\texttt{tf.name_scope}, \texttt{tf.summary.scalar}, \texttt{tf.summary.FileWriter}, \texttt{tensorboard --logdir=<FileWriterOutputdir>}, right-aligning formatted text in Python, accessing ports on a private IP vs. accessing ports through a public IP, using \texttt{vim}). I think I'm getting it (slowwwwllllyyyyy). Inadvertently overwrote data in git (arghhh).
+(08:30 - 11:00, 12:00 - 15:00) Learned how to use TensorBoard (\texttt{tf.name\_scope}, \texttt{tf.summary.scalar}, \texttt{tf.summary.FileWriter}, \texttt{tensorboard --logdir=<FileWriterOutputdir>}, right-aligning formatted text in Python, accessing ports on a private IP vs. accessing ports through a public IP, using \texttt{vim}). I think I'm getting it (slowwwwllllyyyyy). Inadvertently overwrote data in git (arghhh).
 
 \labday{Saturday, 15th July 2017}
 (08:05 - 12:20) Prince, \emph{Computer Vision}. Reviewed dual linear regression, attempted to unravel sparse linear regression (I can't wrap my head the approximation he uses for the integral of the product of a $t$-distribution and a normal distribution), tied them together (somewhat) in relevance vector regression. Began Chapter 10, which is on graphical models. Keywords that I should flesh out later:
@@ -1388,4 +1388,14 @@ Branching in Git: \texttt{git checkout -b <branchname>}. This creates a new poin
 
 \labday{Sunday, 16th July 2017}
 (09:00 - 13:00) Prince, \emph{Computer Vision}. Chapter 10: Graphical models. Various types of graphical models: the hidden Markov model, Markov tree, Markov random field, and Kalman filter. Using conditional independence to simplify models with many parameters. Maximum a posteriori for the world state - approximating this distribution through sampling. Sampling from directed graphical models (ancestral sampling). Sampling from undirected graphical models (Markov chain Monte Carlo methods, specifically Gibbs sampling) - relevant as it can be used to build up an approximation to a posterior distribution: $\text{Pr}(w_{1...N}|\mathbf{x}) \propto \text{Pr}(\mathbf{x}|w_{1...N})\cdot\text{Pr}(w_{1...N})$. Fitting graphical models (i.e. joint distributions simplified via conditional independence) - analytical/conv. opt solutions for directed graphical models, using contrastive divergence (approximating the gradient) to fit undirected graphical models.
+
+(14:00 - 16:00) Meeting with MZ regarding The Bakery work with Gilette (i.e. P \& G).
+
+(17:15 -) Coding PV panel classifier.
+\begin{itemize}
+	\item Combine validation and training accuracy scores under one file writer.
+	\item Classify query testing images.
+	\item Add image augmentation step during training.
+	\item Update report.
+\end{itemize}
  \end{document}
