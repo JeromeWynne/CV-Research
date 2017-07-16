@@ -45,15 +45,16 @@ def extract_patches(images, masks, patch_size, mode):
         ix = {'crack' : np.array(np.nonzero(masks)).T,
               'nocrack' : np.array(np.nonzero(np.logical_not(masks))).T}
 
-        ix['nocrack'] = ix['nocrack'][
-				np.random.randint(low = 0,
-                                                  high = ix['nocrack'].shape[0],
-                                                  size = ix['crack'].shape[0]),
+        ix['nocrack'] = ix['nocrack'][np.random.randint(low = 0,
+                                                        high = ix['nocrack'].shape[0],
+                                                        size = ix['crack'].shape[0]),
                                       :]
         ix = np.concatenate([ix['crack'], ix['nocrack']], axis = 0)
-    # Testing mode does not balance dataset (i.e. extracts all pixels)
-    elif mode == 'test':
-        ix = np.array(np.nonzero(masks != None)).T
+    # Testing mode does not balance dataset (i.e. extracts patches centered on all pixels)
+    elif mode == 'test': # Hard-coded to extract 100x100 top-left patches -> Maybe extract constrained random patches in future?
+            crop_region = np.zeros_like(masks).astype(np.float32)
+            crop_region[:, :100, :100] = 1. # TF['query_side']
+            ix = np.array(np.nonzero(crop_region)).T
 
     patches    = np.zeros([ix.shape[0], patch_size, patch_size, 1])
     ohe_labels = np.zeros([ix.shape[0], 2])
@@ -114,6 +115,12 @@ def preprocessing(self, dataset, masks, mode):
         print('Validation dataset dimensions: {}'.format(subset_dataset.shape))
         print('Validation labels dimensions: {}'.format(subset_labels.shape))
 
+    elif mode == 'test':
+        subset_dataset, subset_labels  = extract_patches(resized_dataset,
+                                                         resized_masks, PATCH_SIZE, mode = 'test')
+        print('Test dataset dimensions: {}'.format(subset_dataset.shape))
+        print('Test labels dimensions: {}'.format(subset_labels.shape))
+
     filtered_dataset = (subset_dataset.astype(np.float32)
                             - self.pp_parameters['mean'])/self.pp_parameters['std']
     filtered_labels  = subset_labels.astype(np.float32)
@@ -135,20 +142,24 @@ TF = {
       'batch_size':32,
       'input_channels':1,
       'n_classes':2,
+      'n_testing_images':1,
       'image_size':20,
+      'query_side':100,
       'output_channels':[64, 128, 1024],
       'filter_size':[3, 3],
-      'seed':1,
+      'seed':3,
       'mode':'holdout',
-      'split_fraction':0.8,
-      'training_steps':5001,
-      'learning_rate':0.05,
+      'split_fraction':0.7,
+      'training_steps':10001,
+      'learning_rate':0.01,
       'graph':tf.Graph(),
+      'summary_train':[None]*2, # Loss, accuracy
+      'summary_test':[None]*2 # Query, predictions
       } # Master dictionary
 
 with TF['graph'].as_default():
     # Placeholders and constants
-    with tf.namespace('Inputs'):
+    with tf.name_scope('Inputs'):
         TF['data']   = tf.placeholder(tf.float32,
                                      [None, TF['image_size'],
                                      TF['image_size'], TF['input_channels']],
@@ -216,7 +227,7 @@ with TF['graph'].as_default():
                             tf.nn.softmax_cross_entropy_with_logits(logits = logits,
                                 labels = TF['labels']),
                             name = 'loss')
-            tf.summary.scalar('CrossEntropy', TF['loss'])
+            TF['summary_train'][0] = tf.summary.scalar('CrossEntropy', TF['loss'])
 
         with tf.name_scope('Optimizer'):
             TF['optimizer'] = tf.train.GradientDescentOptimizer(TF['learning_rate'],
@@ -228,9 +239,27 @@ with TF['graph'].as_default():
         TF['accuracy']    = tf.contrib.metrics.accuracy(tf.argmax(TF['labels'], axis = 1),
                                                         tf.argmax(TF['predictions'], axis = 1),
                                                         name = 'accuracy')
-        tf.summary.scalar('Accuracy', TF['accuracy'])
+        TF['summary_train'][1] = tf.summary.scalar('Accuracy', TF['accuracy'])
 
-    TF['summary'] = tf.summary.merge_all()
+    with tf.name_scope('Testing'):
+        # Reshape predictions to an image format
+        TF['crack_probabilities'] = tf.slice(TF['predictions'],
+                                             begin = [0, 1], size = [-1, 1])
+        TF['test_predictions']    = tf.reshape(TF['crack_probabilities'],
+                                               shape = [TF['n_testing_images'], TF['query_side'],
+                                                        TF['query_side'], 1])
+        TF['central_pixel_data'] = tf.slice(TF['data'],
+                                            begin = [0, TF['query_side']//2, TF['query_side']//2, 0],
+                                            size  = [-1, 1, 1, -1])
+        TF['test_query'] = tf.reshape(TF['central_pixel_data'],
+                                      shape = [TF['n_testing_images'], TF['query_side'],
+                                               TF['query_side'], TF['input_channels']])
+        # ^ Assumes the query image is square
+        TF['summary_test'][0] = tf.summary.image('QueryImages', TF['test_query'])
+        TF['summary_test'][1] = tf.summary.image('QueryPredictions', TF['test_predictions'])
+
+    TF['train_summary'] = tf.summary.merge(TF['summary_train'])
+    TF['test_summary']  = tf.summary.merge(TF['summary_test'])
 
 print('Graph defined.')
 
