@@ -161,8 +161,8 @@ with TF['graph'].as_default():
     # Placeholders and constants
     with tf.name_scope('Inputs'):
         TF['data']   = tf.placeholder(tf.float32,
-                                     [None, TF['image_size'],
-                                     TF['image_size'], TF['input_channels']],
+                                     [None, TF['patch_size'],
+                                     TF['patch_size'], TF['input_channels']],
                                     name = 'data')
         TF['labels'] = tf.placeholder(tf.float32,
                                       [None, TF['n_classes']],
@@ -188,8 +188,8 @@ with TF['graph'].as_default():
         with tf.name_scope('VariablesFCLayer'):
             weights3 = tf.Variable(tf.truncated_normal(
                                    shape = [TF['output_channels'][1] *
-                                                TF['image_size'] *
-                                                TF['image_size'],
+                                                TF['patch_size'] *
+                                                TF['patch_size'],
                                                 TF['n_classes']], stddev = 0.01),
 			name = 'FC_Layer_Weights')
             biases3  = tf.Variable(tf.zeros(TF['n_classes']),
