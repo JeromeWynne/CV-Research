@@ -122,7 +122,7 @@ def preprocessing(self, dataset, masks, mode):
 
 
 ##============= SCRIPT =================##
-print('\nTester initialized.')
+print('\nModel initialized.')
 ### >> DATA IMPORT << ##
 images = np.array([np.expand_dims(imread(fp), axis = -1)
 			for fp in glob('../data/resized-images/*.png')])
@@ -148,7 +148,7 @@ TF = {
 
 with TF['graph'].as_default():
     # Placeholders and constants
-    with tf.name_scope('Inputs')
+    with tf.namespace('Inputs'):
         TF['data']   = tf.placeholder(tf.float32,
                                      [None, TF['image_size'],
                                      TF['image_size'], TF['input_channels']],
@@ -180,9 +180,9 @@ with TF['graph'].as_default():
                                                 TF['image_size'] *
                                                 TF['image_size'],
                                                 TF['n_classes']], stddev = 0.01),
-			                       name = 'FC_Layer_Weights')
+			name = 'FC_Layer_Weights')
             biases3  = tf.Variable(tf.zeros(TF['n_classes']),
-			                       name = 'FC_Layer_Biases')
+			name = 'FC_Layer_Biases')
 
     # Model
     def model(data):
@@ -222,26 +222,20 @@ with TF['graph'].as_default():
             TF['optimizer'] = tf.train.GradientDescentOptimizer(TF['learning_rate'],
                                     name = 'optimizer').minimize(TF['loss'])
 
-    # Predictions and Accuracy Scores
-    with tf.name_scope('PredictionsAndScoring'):
+        # Predictions and Accuracy Scores
         TF['predictions'] = tf.nn.softmax(logits, name = 'predictions')
 
-        TF['training_accuracy']    = tf.contrib.metrics.accuracy(tf.argmax(TF['labels'], axis = 1),
+        TF['accuracy']    = tf.contrib.metrics.accuracy(tf.argmax(TF['labels'], axis = 1),
                                                         tf.argmax(TF['predictions'], axis = 1),
-                                                        name = 'training_accuracy')
-        tf.summary.scalar('TrainingAccuracy', TF['training_accuracy'])
-
-        TF['validation_accuracy']  = tf.contrib.metrics.accuracy(tf.argmax(TF['labels'], axis = 1),
-                                                        tf.argmax(TF['predictions'], axis = 1),
-                                                        name = 'validation_accuracy')
-        tf.summary.scalar('ValidationAccuracy', TF['validation_accuracy'])
+                                                        name = 'accuracy')
+        tf.summary.scalar('Accuracy', TF['accuracy'])
 
     TF['summary'] = tf.summary.merge_all()
 
 print('Graph defined.')
 
-
 ### >> TRAINING << ###
+
 print('{} training iterations.'.format(TF['training_steps']))
 print('{} units per batch.'.format(TF['batch_size']))
 

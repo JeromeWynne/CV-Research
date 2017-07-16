@@ -172,8 +172,7 @@ class Tester(object):
         self.tf_data         = TF['data']        # Namespace of tensorflow data
         self.tf_labels       = TF['labels']      # Namespace of tensorflow labels
         self.tf_predictions  = TF['predictions'] # Namespace of tensorflow predictions
-        self.tf_training_accuracy     = TF['training_accuracy']    # Namespace of tensorflow training accuracy
-        self.tf_validation_accuracy   = TF['validation_accuracy']  # Namespace of tensorflow validation accuracy
+        self.tf_accuracy     = TF['accuracy']    # Namespace of tensorflow accuracy
 
         np.random.seed(self.seed)
 
@@ -209,27 +208,29 @@ class Tester(object):
 
             print('\nFitting model...')
             session.run(tf.global_variables_initializer())
-            writer  = tf.summary.FileWriter('FileWriterOutput/train', session.graph)
+            train_writer  = tf.summary.FileWriter('FileWriterOutput/train', session.graph)
+            valid_writer  = tf.summary.FileWriter('FileWriterOutput/valid', session.graph)
 
             for step in range(self.training_steps):
-
                     if step % 100 == 0:
                         val_fd  = { self.tf_data : self.dataset['pvalid'],
                                     self.tf_labels : self.labels['ohevalid'] }
-                        s, val_acc = session.run([self.tf_summary, self.tf_validation_accuracy],
+                        s, val_acc = session.run([self.tf_summary, self.tf_accuracy],
                                                   feed_dict = val_fd)
                         if step != 0:
                             print('(Step {:^5d}) Minibatch accuracy: {:>8.2f}'.format(step, tr_acc))
                             print('(Step {:^5d}) Minibatch loss: {:>12.4f}'.format(step, l))
-                        print('(Step {:^5d}) Validation accuracy: {:>7.2f}\n'.format(step, val_acc))
-                        writer.add_summary(s, step)
 
+                        print('(Step {:^5d}) Validation accuracy: {:>7.2f}\n'.format(step, val_acc))
+
+                        valid_writer.add_summary(s, step)
                     else:
                         batch_data, batch_labels = minibatch(self.dataset['ptrain'], self.labels['ohetrain'],
                                                              self.batch_size, step)
                         fd = {self.tf_data:batch_data, self.tf_labels:batch_labels}
                         s, _, l, tr_acc = session.run([self.tf_summary, self.tf_optimizer, self.tf_loss,
-                                                       self.tf_training_accuracy], feed_dict = fd)
-                        writer.add_summary(s, step)
+                                                       self.tf_accuracy], feed_dict = fd)
+                        train_writer.add_summary(s, step)
 
-            writer.close()
+            train_writer.close()
+            valid_writer.close()
