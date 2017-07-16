@@ -139,11 +139,11 @@ print('Data imported.')
 
 ### >> GRAPH DEFINITION << ###
 TF = {
-      'batch_size':32,
+      'batch_size':64,
       'input_channels':1,
       'n_classes':2,
       'n_testing_images':1,
-      'image_size':20,
+      'patch_size':20,
       'query_side':100,
       'output_channels':[64, 128, 1024],
       'filter_size':[3, 3],
@@ -249,7 +249,7 @@ with TF['graph'].as_default():
                                                shape = [TF['n_testing_images'], TF['query_side'],
                                                         TF['query_side'], 1])
         TF['central_pixel_data'] = tf.slice(TF['data'],
-                                            begin = [0, TF['query_side']//2, TF['query_side']//2, 0],
+                                            begin = [0, TF['patch_size']//2, TF['patch_size']//2, 0],
                                             size  = [-1, 1, 1, -1])
         TF['test_query'] = tf.reshape(TF['central_pixel_data'],
                                       shape = [TF['n_testing_images'], TF['query_side'],
