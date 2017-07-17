@@ -50,9 +50,10 @@ def extract_patches(images, masks, patch_size, mode):
                                                         size = ix['crack'].shape[0]),
                                       :]
         ix = np.concatenate([ix['crack'], ix['nocrack']], axis = 0)
+        ix = np.random.permutation(ix)
     # Testing mode does not balance dataset (i.e. extracts patches centered on all pixels)
     elif mode == 'test': # Hard-coded to extract 100x100 top-left patches -> Maybe extract constrained random patches in future?
-            crop_region = np.zeros_like(masks).astype(np.float32)
+            crop_region = np.zeros_like(masks)
             crop_region[:, :100, :100] = 1. # TF['query_side']
             ix = np.array(np.nonzero(crop_region)).T
 
@@ -60,15 +61,15 @@ def extract_patches(images, masks, patch_size, mode):
     ohe_labels = np.zeros([ix.shape[0], 2])
 
     # 2. Sample patches centered on selected pixels
-    for j, i in enumerate(np.random.permutation(ix)):
+    for j, i in enumerate(ix):
 
         if (j == 0) or np.any(images[i[0], :, :, :] != img):
             img  = images[i[0], :, :, :]
             pimg = np.pad(img, pad_width = [[ps, ps], [ps, ps], [0, 0]],
                           mode = 'constant', constant_values = 0)
 
-        patches[j, :, :, :] =  pimg[i[0] + ps // 2 : i[0] + (3 * ps // 2),
-                                    i[1] + ps // 2 : i[1] + (3 * ps // 2)]
+        patches[j, :, :, :] =  pimg[i[1] + ps // 2 : i[1] + (3 * ps // 2),
+                                    i[2] + ps // 2 : i[2] + (3 * ps // 2)]
         k = masks[i[0], i[1], i[2]]
         ohe_labels[j, int(k)] = 1. # One-hot encode the masks
 
@@ -154,7 +155,7 @@ TF = {
       'learning_rate':0.01,
       'graph':tf.Graph(),
       'summary_train':[None]*2, # Loss, accuracy
-      'summary_test':[None]*2 # Query, predictions
+      'summary_test':[None]*3 # Query, predictions
       } # Master dictionary
 
 with TF['graph'].as_default():
@@ -167,6 +168,8 @@ with TF['graph'].as_default():
         TF['labels'] = tf.placeholder(tf.float32,
                                       [None, TF['n_classes']],
                                       name = 'labels')
+
+        TF['summary_test'][2] = tf.summary.image('BatchImages', TF['data'])
 
     # Variables
     with tf.name_scope('Variables'):

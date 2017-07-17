@@ -90,14 +90,6 @@ def minibatch(dataset, labels, batch_size, step):
     batch_labels = labels[posn:(posn + batch_size), :]
     return batch_data, batch_labels
 
-def accuracy_score(predictions, ground_truth):
-    """
-    Accepts one-hot encoded predictions and ground truth. (np.float32 arrays)
-    """
-    score = 100*np.sum(np.equal(np.argmax(predictions, axis = 1),
-                                np.argmax(ground_truth, axis = 1)))/ground_truth.shape[0]
-    return score
-
 def ohe_mask(mask):
     """
         Returns an array of one-hot encoded labels for each pixel in a stack of masks.
@@ -230,9 +222,11 @@ class Tester(object):
         # NOTE: by-pixel label masks -> Preprocessor -> ohe label for each image returned
 
         # Write preprocessed image locally
-        from scipy.misc import imsave
-        test_img = (self.dataset['ptest']*self.pp_parameters['std'] + self.pp_parameters['mean'])[:, 10, 10, 0]
-        imsave('./test_img.png', np.reshape(test_img, [100, 100]).astype(np.uint8))
+        # from scipy.misc import imsave
+        # test_img = (self.dataset['ptest']*self.pp_parameters['std'] + self.pp_parameters['mean'])[:, 10, 10, 0]
+        # training_img = (self.dataset['ptrain']*self.pp_parameters['std'] + self.pp_parameters['mean'])[10, :, :, 0]
+        # imsave('./train_img.png', training_img)
+        # imsave('./test_img.png', np.reshape(test_img, [100, 100]))
 
 
     def evaluate_model(self):
