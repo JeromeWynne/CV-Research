@@ -140,22 +140,22 @@ print('Data imported.')
 
 ### >> GRAPH DEFINITION << ###
 TF = {
-      'batch_size':64,
+      'batch_size':32,
       'input_channels':1,
       'n_classes':2,
       'n_testing_images':1,
       'patch_size':20,
       'query_side':100,
       'output_channels':[64, 128, 1024],
-      'filter_size':[3, 3],
+      'filter_size':[3, 5],
       'seed':3,
       'mode':'holdout',
       'split_fraction':0.7,
       'training_steps':10001,
       'learning_rate':0.01,
       'graph':tf.Graph(),
-      'summary_train':[None]*2, # Loss, accuracy
-      'summary_test':[None]*3 # Query, predictions
+      'summary_train':[None]*3, # Loss, accuracy, image
+      'summary_test':[None]*3 # Query, predictions, filters
       } # Master dictionary
 
 with TF['graph'].as_default():
@@ -169,7 +169,7 @@ with TF['graph'].as_default():
                                       [None, TF['n_classes']],
                                       name = 'labels')
 
-        TF['summary_test'][2] = tf.summary.image('BatchImages', TF['data'])
+        TF['summary_train'][2] = tf.summary.image('BatchImages', TF['data'], max_outputs = 1)
 
     # Variables
     with tf.name_scope('Variables'):
@@ -179,6 +179,7 @@ with TF['graph'].as_default():
                     	           shape = [TF['filter_size'][0], TF['filter_size'][0],
                                             TF['input_channels'], TF['output_channels'][0]], stddev = 0.01),
 			                       name = 'Layer_1_Filters')
+            TF['summary_test'][2] = tf.summary.image('FirstLayerFilters', tf.transpose(filters1, [3, 0, 1, 2]), max_outputs = 32)
             biases1  = tf.Variable(tf.zeros([TF['output_channels'][0]]),
 			                       name = 'Layer_1_Biases')
             filters2 = tf.Variable(tf.truncated_normal(
