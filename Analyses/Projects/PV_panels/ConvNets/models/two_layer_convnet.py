@@ -26,13 +26,15 @@ def model(TF):
                         	           shape = [TF['filter_size'][0], TF['filter_size'][0],
                                                 TF['input_channels'], TF['output_channels'][0]], stddev = 0.01),
         		                       name = 'Layer_1_Filters')
-                TF['summary_test'][2] = tf.summary.image('FirstLayerFilters', tf.transpose(filters1, [3, 0, 1, 2]), max_outputs = 32)
+                TF['summary_test'][2] = tf.summary.image('FirstLayerFilters', tf.transpose(filters1, [3, 0, 1, 2]), max_outputs = 16)
+                TF['summary_train'][3] = tf.summary.histogram('FirstLayerFilters', filters1)
                 biases1  = tf.Variable(tf.zeros([TF['output_channels'][0]]),
         		                       name = 'Layer_1_Biases')
                 filters2 = tf.Variable(tf.truncated_normal(
                         	           shape = [TF['filter_size'][1], TF['filter_size'][1],
                                                 TF['output_channels'][0], TF['output_channels'][1]], stddev = 0.01),
         		                       name = 'Layer_2_Filters')
+                TF['summary_train'][4] = tf.summary.histogram('SecondLayerFilters', filters2)
                 biases2  = tf.Variable(tf.zeros([TF['output_channels'][1]]),
         		                       name = 'Layer_2_Biases')
             # Fully connected layers
@@ -42,30 +44,31 @@ def model(TF):
                                                     TF['patch_size'] *
                                                     TF['patch_size'],
                                                     TF['n_classes']], stddev = 0.01),
-        		name = 'FC_Layer_Weights')
+        		                       name = 'FC_Layer_Weights')
                 biases3  = tf.Variable(tf.zeros(TF['n_classes']),
-        		name = 'FC_Layer_Biases')
+        		                       name = 'FC_Layer_Biases')
+                TF['summary_train'][5] = tf.summary.histogram('FCLayerWeights', weights3)
 
         # Model
         def model(data):
             with tf.name_scope('ConvolutionalLayers'):
                 # Layer 1 : 20 x 20 x 1 input ; 10 x 10 x 64 output ; (3 x 3 x 1) x 64 filters ; stride of 2 ; same padding
-                conv = tf.nn.conv2d(data, filters1, strides = [1, 1, 1, 1],
+                conv1 = tf.nn.conv2d(data, filters1, strides = [1, 1, 1, 1],
         		    padding = 'SAME', use_cudnn_on_gpu = True,
         		    name = 'Layer_1_Conv')
-                act  = tf.nn.relu(conv + biases1, name = 'Layer_1_Response')
+                act1  = tf.nn.relu(conv1 + biases1, name = 'Layer_1_Response')
 
                 # Layer 2 : 10 x 10 x 64 input ; 5 x 5 x 128 output ; (3 x 3 x 64) x 128 filters ; stride of 2 ; same padding
-                conv = tf.nn.conv2d(act, filters2, strides = [1, 1, 1, 1],
+                conv2 = tf.nn.conv2d(act1, filters2, strides = [1, 1, 1, 1],
         		    padding = 'SAME', use_cudnn_on_gpu = True,
         		    name = 'Layer_2_Conv')
-                act  = tf.nn.relu(conv + biases2, name = 'Layer_2_Response')
+                act2  = tf.nn.relu(conv2 + biases2, name = 'Layer_2_Response')
 
             with tf.name_scope('FullyConnectedLayer'):
                 # Layer 3 : fully connected ; 5*5*128 input ; (5*5*128 x 2) filters
-                shape  = tf.shape(act)
-                act    = tf.reshape(act, [shape[0], shape[1]*shape[2]*shape[3]])
-                logits = tf.nn.relu(tf.matmul(act, weights3) + biases3, name = 'FC_Layer_Logits')
+                shape  = tf.shape(act2)
+                act2    = tf.reshape(act2, [shape[0], shape[1]*shape[2]*shape[3]])
+                logits = tf.nn.relu(tf.matmul(act2, weights3) + biases3, name = 'FC_Layer_Logits')
 
             return logits
 

@@ -87,6 +87,11 @@ def minibatch(dataset, labels, batch_size, step):
     batch_labels = labels[posn:(posn + batch_size), :]
     return batch_data, batch_labels
 
+def augment_images(data):
+    if np.random.randint(2): data = np.flip(data, axis = 1)
+    if np.random.randint(2): data = np.flip(data, axis = 2)
+    return data
+
 class Tester(object):
     """
     An agent for running and storing the results of tests on image classifiers.
@@ -147,7 +152,6 @@ class Tester(object):
         np.random.seed(self.seed)
 
         self.holdout()
-
 
     def holdout(self):
         """

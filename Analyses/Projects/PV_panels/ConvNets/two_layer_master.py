@@ -24,20 +24,20 @@ TF = {
       'batch_size':32,
       'filter_size':[3, 5],
       'graph':None,
-      'image_size':250, # Resize full images to this size
+      'image_size':300, # Resize full images to this size
       'input_channels':1,
-      'learning_rate':0.01,
+      'learning_rate':0.001,
       'n_classes':2,
       'n_testing_images':1,
       'n_training_samples':5000,
-      'output_channels':[64, 128, 1024],
-      'patch_size':25,
+      'output_channels':[4, 8, 128],
+      'patch_size':20,
       'query_side':100, # Size of contiguous test query image
       'seed':3,
       'split_fraction':0.7,
-      'summary_train':[None]*3, # Loss, accuracy, image
+      'summary_train':[None]*6, # Loss, accuracy, image
       'summary_test':[None]*3, # Query, predictions, filters
-      'training_steps':10001,
+      'training_steps':20001,
 	  'test_id':'two_layer_convnet_img250_ptch25_pxint'
 } # Master dictionary
 
