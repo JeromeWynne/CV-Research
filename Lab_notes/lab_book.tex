@@ -50,6 +50,7 @@
 \setlength\parindent{0pt} % Removes all indentation from paragraphs
 
 \DeclareMathOperator*{\argmax}{arg\,max}
+\DeclareMathOperator*{\argmin}{arg\,min}
 
 %----------------------------------------------------------------------------------------
 %	DEFINITION OF EXPERIMENTS
@@ -1400,5 +1401,113 @@ Branching in Git: \texttt{git checkout -b <branchname>}. This creates a new poin
 \end{itemize}
 
 Why are the query images not coming out correctly?
+
+\labday{Monday, 17th July 2017}
+(06:30 - 08:15) Fixed image subsetting problem in TensorFlow API. 
+(08:15 - 13:00) Reporting
+(17:00 - 20:30) Prince, \emph{Computer Vision}. Hidden Markov models and Markov trees.
+\experiment{Prince, \emph{Computer Vision} (Ch. 10: Graphical Models)}
+This chapter introduced graphical models as a means of representing and simplifying joint distributions. In the models we've seen so far, it is possible to run up against vast compute requirements as the model expands and an increasing number of parameters need to be estimated. Graphical models circumvent this problem by factorizing the joint distribution into the product of many conditional distributions.
+\subsection*{Directed Graphical Models}
+Directed graphical models perform this factorization directly. The variables are assumed to be independent given their conditional variables, allowing the joint distribution to be factorized into a product over these conditional distributions.
+\[
+	\text{Pr}(x_{1...N}) = \prod_{n=1}^{N}\text{Pr}(\mathbf{x}_n | x_{\text{pa}[n]} )
+\]
+The l.h.s. of this equation corresponds to the joint distribution over $N$ random variables $x$. The r.h.s. is the product of conditional distributions over each variable. Each variable is conditional on only a subset of the other variables: otherwise it is independent of all other variables. Quick refresher: the definition of independence:
+\[
+	\text{Pr}(x_i, x_j) = \text{Pr}(x_i | x_j) \cdot \text{Pr}(x_j) = \text{Pr}(x_i) \cdot \text{Pr}(x_j)
+\]
+Directed graphical models are easy to read: We represent each random variable as a node, and indicate whether one variable influences another using arrows between nodes. For two nodes to be independent, they should share no common ancestors. A variable is conditionally indpendent of all other variables given its \emph{Markov blanket} - its parents, children, and other parents of its children nodes.
+
+\subsection*{Undirected Graphical Models}
+Undirected graphical models have a different form to directed graphical models. Rather than expressing a joint distribution as the product of conditional distributions, they instead use the normalized product of a series of functions (\emph{potential} functions) accepting the random variables as arguments. 
+\[
+	\text{Pr}(x_{1...N}) = \frac{1}{Z}\prod_{c=1}^{C}\phi_c[x_{i}, ...]
+\]
+Where the normalizing constant $Z$ is known as the partition function: 
+\[
+	Z = \int \prod_{c=1}^C \phi_c[x_i, ...] dx_{1...N}
+\]
+The potential functions $\phi_c[\cdot]$ are constrained to return positive values. Sometimes undirected graphical models are represented using an alternative parameterization, the Gibbs distribution:
+\[
+	\text{Pr}(x_{1...N}) = \frac{1}{Z}\exp\big[-\sum_{c=1}^{C}\varphi_c[x_i,...]\big]
+\]
+If the entire set of variables is passed to each of the potential functions, then this model is known as a product of experts. If subsets are used - \emph{cliques} - then it's a \emph{Markov random field}. The summation is referred to as the \emph{energy} of a given combination of inputs. As for drawing the damned thing: Produce nodes for each variable, then draw connections between nodes in the same clique. To factorize a model from its graph, find the \emph{maximal clique} - the largest subset containing the node in which every node is connected to every other node - for each variable and bundle these together under a potential function.
+
+A benefit of using an undirected representation of a joint distribution is that independence of sets of nodes can be easily deduced: Two sets of nodes are conditionally independent of one another if a third set separates them.
+
+There is another type of graph - a factor graph. I won't relay the details here however, since they will come up in my discussion of the sum-product algorithm.
+
+\subsection*{Modes of Inference for Graphical Models}
+This chapter highlighted a few modes of inference for graphical models. In inference, we desire the distribution of world states $w_{1...N}$ for a given input $\mathbf{x}{1...N}$ (assume the inputs variables each correspond to a vector). Apparently, this would be expensive to compute (I haven't yet convinced myself of this). So instead of computing the distribution, we simply obtain the world states that are maximally probable:
+\begin{align*}
+	\hat{w}_{1...N} &= \argmax_{w_{1..N}}\Big[\text{Pr}(w_{1...N}|\mathbf{x}_{1...N})\Big] \\
+	&= \argmax_{w_{1...N}}\Big[\text{Pr}(\mathbf{x}_{1...N}|w_{1...N})\cdot\text{Pr}(w_{1...N}))\Big]
+\end{align*}
+The likelihood function may contain lots of parameters: If this is the case, then we must resort to other modes of inference, such as computing marginal distributions over each of the world states. This has the benefit of not requiring the relationships between world states to be parameterized.
+\[
+	\text{Pr}(w_n | \mathbf{x}_{1...N}) = \int\int \text{Pr}(w_{1...N}|\mathbf{x}_{1...N})\cdot w_{1..n-1} \cdot w_{n+1...N}
+\]
+If we exploit conditional independence relations, then this is integral is tractable. If it isn't tractable analytically, then we can approximate it by sampling. We could conceivably parameterize a distribution using the samples we draw.
+
+More generally, sampling can prove an effective strategy for understanding the shape of a joint distribution. As has been said, it's unlikely that we can compute and store the parameterization of a large joint distribution. Instead, we can approximate it by sampling its variables in accordance with its graph's strucure. In directed graphical models, this is relatively easy: we use techique called \emph{ancestral sampling} that can be summarized as:
+\begin{enumerate}
+\item Sample a value from the distributions of variables that have no parents.
+\item Move through the graph, sampling from nodes whose parents have already been sampled from, parameterizing the distributions of these nodes using the previously sampled values.
+\end{enumerate}
+We cannot perform ancestral sampling in an undirected graphical model because there is no concept of parentage and we have potential/cost functions as opposed to conditional probability distributions. Because of this, Markov chain Monte Carlo sampling methods are used: drawing a series of samples, conditioning each draw on its predecessor. One particular form of Markov chain Monte Carlo is Gibbs sampling. A Gibbs sampler initializes a vector of values, one for each variable, then immediately sets about creating another vector of sampled variables by drawing from the conditional distributions. The conditional distributions are parameterized using the values sampled in the initial step. By repeating this process many times, the frequency distribution within the series of samples eventually approximates the variables' joint distribution.
+
+\subsection*{Learning in Graphical Models}
+The parameters $\theta$ of the conditional distributions represented by a directed graphical model can be fit by maximizing the conditional likelihoods. Pleasingly convenient!
+\[
+	\hat{\theta} = \argmax_{\theta}\Big[\sum_{i = 1}^{I}\sum_{j}^N \log\big[\text{Pr}(x_j | x_{\text{pa}[j]})\big]\Big]
+\]
+Where we have $I$ instances of sets of $N$ variables. If we're lucky we can solve this problem analytically, but if not it is possible to apply a convex optimization algorithm.
+
+Learning in undirected graphical models is more difficult. We again seek to maximize the log-likelihood, however the partition function creates a computationally intractable sticking point. To get around this, we make an approximation. We can show that:
+\[
+	\frac{\partial \log[Z(\theta)]}{\partial \theta} = \sum_{x}\text{Pr}(x)\frac{\partial \log \big[f[x, \theta]\big]}{\partial \theta}
+\]
+Where $Z(\theta) = \sum_x f[x, \theta]$. The r.h.s. in the above expression is the expectation w.r.t. $x$ of the derivate. We can approximate this expecation by sampling from the distribution of $\frac{\partial \log \big[f[x, \theta]\big]}{\partial \theta}$ and averaging. This permits us to approximate the gradient of the log-likelihood, further allowing a convex optimization algorithm to be used to maximize the likelihood w.r.t. the parameters.
+
+07:00 - 10:30 : Prince, \emph{Computer Vision} / Bengio paper on representation learning.
+12:00 - 16:00 : Library.
+Took the evening off.
+
+\experiment{Prince, \emph{Computer Vision} (Ch. 11: Models for Chains and Trees)}
+\begin{itemize}
+	\item Markov chain assumption: measurements are independent given their world state, world states are only dependent on their immediate predecessors.
+	\item Hidden Markov models assume discrete world states.
+	\item Markov trees consist of nodes that can have more than one inbound connection. Maximum a posteriori for them is also achieved using Viterbi, however compuing the minimum cost pathway at nodes with multiple parents will be more expensive.
+	\item Maximum a posteriori inference for chains - using the Viterbi algorithm to deduce the set of world states that maximizes the posterior probability $\text{Pr}(w_{1...N}|x_{1...N})$. Exploiting conditional independence relations to express this posterior in a form that lends itself to optimization using Viterbi. Viterbi:
+	\begin{enumerate}
+		\item Plot columns of nodes. Each column corresponds to a world state variable, and each row to a possible discrete world state value.
+		\item Begin at the first column. Store the cost of each node, $U[w_1 = k]$ within itself.
+		\item Move to the second column. At each node, compute and store the cheapest pathway to the node - this is a sum of the connected node's stored cost, the pathway cost, and the cost of the node itself. 
+		\item Repeat the above process for all columns of nodes. Denoting the cost stored in the $k$th node of the $l$th world state as $S_{k, l}$, this results in:
+		\[
+			S_{k, l} = \min_{j}\Big[  S_{j, l - 1} + P[w_l = k, w_{l-1} = j] + U[w_l = k] \Big]
+		\]
+		Where $U$ is the cost of the node described that satisfies $w_l = k$ and $P$ is the the cost of tranisitioning from state $j$ to state $k$.
+		\item When the final column (i.e. world state) is reached, inspect the cost stored in each of its nodes and retrieve the pathway associated with the smallest value.
+	\end{enumerate}
+	\item Viterbi algorithm: Given a set of states, costs associated with each state, and costs to transition between states, what is the least costly series of states?
+	\item Marginal posterior inference for chains: the forward-backward algorithm. 
+	\item The sum-product algorithm / factor graphs.
+\end{itemize}
+
+
+\labday{Wednesday, 19th July 2017}
+(08:15 - 11:35) Crack prediction models. TensorFlow API.
+\begin{itemize}
+	\item Allow larger negative samples (i.e. upsample positive instances).
+	\item Pass the dictionary to configure the graph and preprocessing settings.
+	\item Pass a test identifier on each run.
+\end{itemize}
+
+(12:20 - 15:00) Prince, \emph{Computer Vision}. Continuing to fiddle with Hidden Markov models... Still don't really get belief propagation.
+
+(19:00 - 21:00) Read paper, \emph{Efficient Representations of Words in Continuous Vector Spaces}. Outlined how to construct a continuous bag-of-words model. Understood semantic and syntactic similarity measures. Understood the skip-gram model (predicting context - adjacent words - from a given input word). Need to understand subsampling of negative instances...
+
 
  \end{document}
