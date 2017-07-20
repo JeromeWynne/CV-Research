@@ -6,7 +6,7 @@ import numpy as np
 from scipy.misc import imresize
 
 ##============= FUNCTIONS =================##
-def extract_patches(images, masks, patch_size, mode, n_samples=None):
+def extract_patches(images, masks, patch_size, mode, n_samples=None, query_side = None):
     """
     	Extracts patches from image data.
 	If training, returns a balanced set of patches.
@@ -44,9 +44,9 @@ def extract_patches(images, masks, patch_size, mode, n_samples=None):
         ix = np.concatenate([ix['crack'], ix['nocrack']], axis = 0)
         ix = np.random.permutation(ix)
     # Testing mode does not balance dataset (i.e. extracts patches centered on all pixels)
-    elif mode == 'test': # Hard-coded to extract 100x100 top-left patches -> Maybe extract constrained random patches in future?
+    elif mode == 'test':
             crop_region = np.zeros_like(masks)
-            crop_region[:, :100, :100] = 1. # TF['query_side']
+            crop_region[:, :query_side, :query_side] = 1. # TF['query_side']
             ix = np.array(np.nonzero(crop_region)).T
 
     patches    = np.zeros([ix.shape[0], patch_size, patch_size, 1])
@@ -99,23 +99,16 @@ def preprocessing(self, dataset, masks, mode, n_samples=None):
                                                          mode = 'train', n_samples = n_samples) # Balanced subset
         self.pp_parameters['mean'] = np.mean(subset_dataset, axis = 0)
         self.pp_parameters['std']  = np.std(subset_dataset, axis = 0)
-        print('Training dataset dimensions: {}'.format(subset_dataset.shape))
-        print('Training labels dimensions: {}'.format(subset_labels.shape))
 
     elif mode == 'valid':
         subset_dataset, subset_labels  = extract_patches(resized_dataset,
                                                          resized_masks, self.patch_size,
                                                          mode = 'valid', n_samples = n_samples)
-        print('Validation dataset dimensions: {}'.format(subset_dataset.shape))
-        print('Validation labels dimensions: {}'.format(subset_labels.shape))
-
     elif mode == 'test':
         subset_dataset, subset_labels  = extract_patches(resized_dataset,
                                                          resized_masks, self.patch_size,
                                                          mode = 'test')
-        print('Test dataset dimensions: {}'.format(subset_dataset.shape))
-        print('Test labels dimensions: {}'.format(subset_labels.shape))
-
+    # Subtract mean and scale
     filtered_dataset = (subset_dataset.astype(np.float32)
                             - self.pp_parameters['mean'])/self.pp_parameters['std']
     filtered_labels  = subset_labels.astype(np.float32)

@@ -91,8 +91,7 @@ def model(TF):
             TF['predictions'] = tf.nn.softmax(logits, name = 'predictions')
 
             TF['accuracy']    = tf.contrib.metrics.accuracy(tf.argmax(TF['labels'], axis = 1),
-                                                            tf.argmax(TF['predictions'], axis = 1),
-                                                            name = 'accuracy')
+                                                            tf.argmax(TF['predictions'], axis = 1))
             TF['summary_train'][1] = tf.summary.scalar('Accuracy', TF['accuracy'])
 
         with tf.name_scope('Testing'):

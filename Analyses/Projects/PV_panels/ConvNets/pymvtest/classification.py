@@ -5,11 +5,13 @@
 # Last updated: 11/07/2017
 
 from os.path import exists
+from os import makedirs
 from shutil import rmtree
 from sys import getsizeof
 import tensorflow as tf
 import numpy as np
 import types
+import json
 
 """ Module functions """
 # > split_dataset       - performs a stratified split of a dataset of images and label masks.
@@ -19,7 +21,7 @@ import types
 # > Tester       - an agent for preprocessing data, running tests, and
 #                  reporting test results.
 
-def split_dataset(dataset, labels, fraction=0.8, n=None):
+def split_dataset(dataset, labels, fraction=0.8):
     """
     Splits the dataset images and labels according to the classes they contain.
     Args:
@@ -35,36 +37,26 @@ def split_dataset(dataset, labels, fraction=0.8, n=None):
         test_labels:  np.float32 array of per-pixel labels  [units x rows x cols x channels]
     Raises:
         none
-    """
+"""
+        positive_ix   = np.array(np.nonzero(
+                                    np.sum(np.sum(labels == 1., axis = 2), axis = 1))).flatten() # Indices of images containing positive class
+        negative_ix   = np.array(np.nonzero(
+                                    np.sum(np.sum(labels == 0., axis = 2), axis = 1))).flatten() # Indices of images containing negative class
+        size = int(fraction*positive_ix.shape[0])
+        rnd_pos_ix    = np.random.choice(positive_ix,
+                                         size    = size,
+                                         replace = False) # Subset of posti indices
+        rnd_neg_ix    = np.random.choice(negative_ix,
+                                         size    = size,
+                                         replace = False)
 
-    if n is not None:
-            test_ix  = np.random.randint(0, dataset.shape[0], n)
-            train_ix = [i for i in range(dataset.shape[0]) if i not in test_ix]
-            train_images = dataset[train_ix, :, :, :]
-            train_labels = labels[train_ix, :, :]
-            test_images  = dataset[test_ix, :, :, :]
-            test_labels  = labels[test_ix, :, :]
-
-    if n is None:
-            positive_ix   = np.array(np.nonzero(
-                                        np.sum(np.sum(labels == 1., axis = 2), axis = 1))).flatten() # Indices of images containing positive class
-            negative_ix   = np.array(np.nonzero(
-                                        np.sum(np.sum(labels == 0., axis = 2), axis = 1))).flatten() # Indices of images containing negative class
-            size = int(fraction*positive_ix.shape[0])
-            rnd_pos_ix    = np.random.choice(positive_ix,
-                                             size    = size,
-                                             replace = False) # Subset of posti indices
-            rnd_neg_ix    = np.random.choice(negative_ix,
-                                             size    = size,
-                                             replace = False)
-
-            mask          = np.zeros([labels.shape[0]]).astype(bool)
-            mask[rnd_pos_ix] = True
-            mask[rnd_neg_ix] = True
-            train_images  = dataset[mask, :, :, :]
-            train_labels  = labels[mask, :, :]
-            test_images   = dataset[np.logical_not(mask), :, :, :]
-            test_labels   = labels[np.logical_not(mask), :, :]
+        mask          = np.zeros([labels.shape[0]]).astype(bool)
+        mask[rnd_pos_ix] = True
+        mask[rnd_neg_ix] = True
+        train_images  = dataset[mask, :, :, :]
+        train_labels  = labels[mask, :, :]
+        test_images   = dataset[np.logical_not(mask), :, :, :]
+        test_labels   = labels[np.logical_not(mask), :, :]
 
     return train_images, test_images, train_labels, test_labels
 
@@ -127,14 +119,17 @@ class Tester(object):
     """
 
     def __init__(self, dataset, masks, TF, preprocessor):
+
         self.dataset         = {'full':dataset} # An array of images
         self.labels          = {'full':masks}   # An array of per-pixel image labels
         self.seed            = TF['seed']       # Integer to initialize random number generator
         self.preprocessor    = types.MethodType(preprocessor, self)    # A preprocessing function - see the example
         self.pp_parameters   = {}                   # Populated by tne preprocessor function (..., store_params = True)
+
         self.training_steps  = TF['training_steps'] # Integer number of training steps
         self.split_fraction  = TF['split_fraction'] # Train/validation split fraction (whole images)
         self.batch_size      = TF['batch_size']     # Integer batch size
+
         self.tf_loss         = TF['loss']           # Namespace of tensorflow loss tensor
         self.tf_graph        = TF['graph']          # A TensorFlow graph
         self.tf_optimizer    = TF['optimizer']      # Namespace of tensorflow optimizer operation
@@ -144,31 +139,31 @@ class Tester(object):
         self.tf_accuracy     = TF['accuracy']       # Namespace of tensorflow accuracy
         self.tf_train_summary = TF['train_summary']
         self.tf_test_summary  = TF['test_summary']
+
         self.n_training_samples = TF['n_training_samples']
-        self.patch_size      = TF['patch_size']
-        self.image_size      = TF['image_size']
-        self.test_id         = TF['test_id']
+        self.patch_size         = TF['patch_size']
+        self.image_size         = TF['image_size']
+
+        self.test_id            = TF['test_id']
+        self.model_id           = TF['model_id']
+        self.preprocessor_id    = TF['preprocessor_id']
 
         np.random.seed(self.seed)
 
-        self.holdout()
-
-    def holdout(self):
         """
         Fits the model to a subset of the data, then calculates its
         performance on a held-out fraction of the data.
         """
-        # Extract one query image for testing
-        ( self.dataset['full'], self.dataset['test'],
-          self.labels['full'], self.labels['test']    ) = split_dataset(self.dataset['full'],
-                                                                        self.labels['full'],
-                                                                        n = 1)
-
         # Split the rest of the data by image class content
         ( self.dataset['train'], self.dataset['valid'],
           self.labels['train'],  self.labels['valid']  ) = split_dataset(self.dataset['full'],
                                                                          self.labels['full'],
                                                                          fraction = self.split_fraction)
+        print('Training dataset dimensions: {}'.format(self.dataset['train'].shape))
+        print('Training labels dimensions: {}'.format(self.labels['train'].shape))
+        print('Validation dataset dimensions: {}'.format(self.dataset['valid'].shape))
+        print('Validation labels dimensions: {}'.format(self.labels['valid'].shape))
+
 
         # Apply the filter and subsetting - configure the preprocessor on the training data.
         self.dataset['ptrain'], self.labels['ohetrain'] = self.preprocessor(self.dataset['train'],
@@ -177,23 +172,37 @@ class Tester(object):
         self.dataset['pvalid'], self.labels['ohevalid']  = self.preprocessor(self.dataset['valid'],
                                                                 self.labels['valid'], mode = 'valid',
                                                                 n_samples = None)
-        self.dataset['ptest'], self.labels['ohetest']    = self.preprocessor(self.dataset['test'],
-                                                                self.labels['test'],  mode = 'test')
         # NOTE: by-pixel label masks -> Preprocessor -> ohe label for each image returned
 
 
-    def evaluate_model(self):
+    def fit_model(self):
         """
         Instantiates and executes a tensorflow session with the Tester's graph.
         """
         with tf.Session(graph = self.tf_graph) as session:
 
             print('\nFitting model...')
-
             session.run(tf.global_variables_initializer())
-            train_writer  = tf.summary.FileWriter('./results/'+self.test_id+'/train', session.graph)
-            valid_writer  = tf.summary.FileWriter('./results/'+self.test_id+'/valid', session.graph)
-            test_writer   = tf.summary.FileWriter('./results/'+self.test_id+'/test',  session.graph)
+
+            makedirs('./results/'+self.subdir+'/'+self.test_id)
+
+            # Write model spec. to text file
+            with open('./results/'+self.test_id+'/'+self.test_id+'.txt', 'w') as file:
+                test_spec = {
+                             'test_id':self.test_id,
+                             'model_id':self.model_id,
+                             'preprocessor_id':self.preprocessor_id,
+                             'seed':self.seed,
+                             'split_fraction':self.split_fraction,
+                             'batch_size':self.batch_size,
+                             'n_training_samples':self.n_training_samples,
+                             'patch_size':self.patch_size,
+                             'image_size':self.image_size
+                             }
+                file.write(json.dumps(test_spec))
+
+            train_writer  = tf.summary.FileWriter('./results/'+self.subdir+'/'+self.test_id+'/train', session.graph)
+            valid_writer  = tf.summary.FileWriter('./results/'+self.subdir+'/'+self.test_id+'/valid', session.graph)
 
             for step in range(self.training_steps):
                     if step % 100 == 0:
@@ -219,12 +228,10 @@ class Tester(object):
                                                        self.tf_accuracy], feed_dict = fd)
                         train_writer.add_summary(s, step)
 
-            # Testing
-            test_fd = { self.tf_data : self.dataset['ptest'],
-                         self.tf_labels : self.labels['ohetest']}
-            s       = session.run(self.tf_test_summary, feed_dict = test_fd)
-            test_writer.add_summary(s, self.training_steps)
-
             train_writer.close()
             valid_writer.close()
-            test_writer.close()
+
+    def query_model(images, masks):
+        # Accepts a stack of query images
+        # Returns probability masks for each of those images
+        self.preprocessing(images, masks, mode = 'test')
