@@ -82,10 +82,10 @@ def resize(images, masks, image_size):
         filtered_dataset: subset images.
         filtered_labels:  one-hot encoded labels
     """
-    MASK_THRESHOLD  = 0.2
+    MASK_THRESHOLD  = 0.1
     resized_images  = np.array([imresize(img.squeeze(), [image_size, image_size]) for img in images])
     resized_masks   = np.array([imresize(msk, [image_size, image_size]) for msk in masks])
-    resized_masks   = np.greater(resized_masks, MASK_THRESHOLD*255)
+    resized_masks   = np.greater(resized_masks, MASK_THRESHOLD)
     resized_images  = np.expand_dims(resized_images, axis = -1)
     return resized_images, resized_masks
 
@@ -258,7 +258,7 @@ class Tester(object):
 
             self.tf_saver.restore(session, './checkpoints/'+self.test_id+'.ckpt')
 
-            predictions = np.zeros_like(images, dtype = 'float32').flatten()
+            predictions = np.zeros_like(images, dtype = np.float32).flatten()
 
             for j, ix in enumerate(np.array(np.nonzero(np.ones_like(masks))).T):
                 ix               = np.array([ix])
