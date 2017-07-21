@@ -2,7 +2,6 @@ import tensorflow as tf
 import numpy as np
 
 def model(TF):
-
     TF['graph'] = tf.Graph()
 
     with TF['graph'].as_default():
@@ -15,8 +14,8 @@ def model(TF):
             TF['labels'] = tf.placeholder(tf.float32,
                                           [None, TF['n_classes']],
                                           name = 'labels')
-
-            TF['summary_train'][2] = tf.summary.image('BatchImages', TF['data'], max_outputs = 1)
+            TF['summary_train'].append(tf.summary.image('BatchImages',
+                                       TF['data'], max_outputs = 1))
 
         # Variables
         with tf.name_scope('Variables'):
@@ -26,17 +25,21 @@ def model(TF):
                         	           shape = [TF['filter_size'][0], TF['filter_size'][0],
                                                 TF['input_channels'], TF['output_channels'][0]], stddev = 0.01),
         		                       name = 'Layer_1_Filters')
-                TF['summary_test'][2] = tf.summary.image('FirstLayerFilters', tf.transpose(filters1, [3, 0, 1, 2]), max_outputs = 16)
-                TF['summary_train'][3] = tf.summary.histogram('FirstLayerFilters', filters1)
                 biases1  = tf.Variable(tf.zeros([TF['output_channels'][0]]),
         		                       name = 'Layer_1_Biases')
                 filters2 = tf.Variable(tf.truncated_normal(
                         	           shape = [TF['filter_size'][1], TF['filter_size'][1],
                                                 TF['output_channels'][0], TF['output_channels'][1]], stddev = 0.01),
         		                       name = 'Layer_2_Filters')
-                TF['summary_train'][4] = tf.summary.histogram('SecondLayerFilters', filters2)
                 biases2  = tf.Variable(tf.zeros([TF['output_channels'][1]]),
         		                       name = 'Layer_2_Biases')
+
+                TF['summary_train'].append(tf.summary.image('FirstLayerFilters',
+                                           tf.transpose(filters1, [3, 0, 1, 2]),
+                                           max_outputs = 16))
+                TF['summary_train'].append(tf.summary.histogram('FirstLayerFilters', filters1))
+                TF['summary_train'].append(tf.summary.histogram('SecondLayerFilters',
+                                           filters2))
             # Fully connected layers
             with tf.name_scope('VariablesFCLayer'):
                 weights3 = tf.Variable(tf.truncated_normal(
@@ -47,7 +50,7 @@ def model(TF):
         		                       name = 'FC_Layer_Weights')
                 biases3  = tf.Variable(tf.zeros(TF['n_classes']),
         		                       name = 'FC_Layer_Biases')
-                TF['summary_train'][5] = tf.summary.histogram('FCLayerWeights', weights3)
+                TF['summary_train'].append(tf.summary.histogram('FCLayerWeights', weights3))
 
         # Model
         def model(data):
@@ -81,7 +84,7 @@ def model(TF):
                                 tf.nn.softmax_cross_entropy_with_logits(logits = logits,
                                     labels = TF['labels']),
                                 name = 'loss')
-                TF['summary_train'][0] = tf.summary.scalar('CrossEntropy', TF['loss'])
+                TF['summary_train'].append(tf.summary.scalar('CrossEntropy', TF['loss']))
 
             with tf.name_scope('Optimizer'):
                 TF['optimizer'] = tf.train.GradientDescentOptimizer(TF['learning_rate'],
@@ -92,26 +95,10 @@ def model(TF):
 
             TF['accuracy']    = tf.contrib.metrics.accuracy(tf.argmax(TF['labels'], axis = 1),
                                                             tf.argmax(TF['predictions'], axis = 1))
-            TF['summary_train'][1] = tf.summary.scalar('Accuracy', TF['accuracy'])
-
-        with tf.name_scope('Testing'):
-            # Reshape predictions to an image format
-            TF['crack_probabilities'] = tf.slice(TF['predictions'],
-                                                 begin = [0, 1], size = [-1, 1])
-            TF['test_predictions']    = tf.reshape(TF['crack_probabilities'],
-                                                   shape = [TF['n_testing_images'], TF['query_side'],
-                                                            TF['query_side'], 1])
-            TF['central_pixel_data'] = tf.slice(TF['data'],
-                                                begin = [0, TF['patch_size']//2, TF['patch_size']//2, 0],
-                                                size  = [-1, 1, 1, -1])
-            TF['test_query'] = tf.reshape(TF['central_pixel_data'],
-                                          shape = [TF['n_testing_images'], TF['query_side'],
-                                                   TF['query_side'], TF['input_channels']])
-            # ^ Assumes the query image is square
-            TF['summary_test'][0] = tf.summary.image('QueryImages', TF['test_query'])
-            TF['summary_test'][1] = tf.summary.image('QueryPredictions', TF['test_predictions'])
+            TF['summary_train'].append(tf.summary.scalar('Accuracy', TF['accuracy']))
 
         TF['train_summary'] = tf.summary.merge(TF['summary_train'])
-        TF['test_summary']  = tf.summary.merge(TF['summary_test'])
+
+        TF['saver'] = tf.train.Saver()
 
     return TF
