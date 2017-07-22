@@ -83,10 +83,15 @@ def resize(images, masks, image_size):
         filtered_labels:  one-hot encoded labels
     """
     MASK_THRESHOLD  = 0.1
-    resized_images  = np.array([imresize(img.squeeze(), [image_size, image_size]) for img in images])
+    n_channels = images.shape[3]
+    resized_images = np.zeros(shape = [images.shape[0], image_size, image_size, images.shape[3]])
+
+    for c in range(n_channels):
+        resized_channel = np.array([imresize(img[:, :, c], [image_size, image_size]) for img in images])
+        resized_images[:, :, :, c]  = resized_channel
+
     resized_masks   = np.array([imresize(msk, [image_size, image_size]) for msk in masks])
     resized_masks   = np.greater(resized_masks, MASK_THRESHOLD)
-    resized_images  = np.expand_dims(resized_images, axis = -1)
     return resized_images, resized_masks
 
 def get_batch_indices(masks, batch_size):
@@ -111,7 +116,7 @@ def get_patches(images, masks, ix, patch_size):
     # Accepts a stack of images, masks, and indices
     # Returns patches corresponding to each index
     ps         = patch_size
-    patches    = np.zeros([ix.shape[0], patch_size, patch_size, 1])
+    patches    = np.zeros([ix.shape[0], patch_size, patch_size, images.shape[3]])
     ohe_labels = np.zeros([ix.shape[0], 2])
 
     for j, i in enumerate(ix):
@@ -120,7 +125,7 @@ def get_patches(images, masks, ix, patch_size):
             pimg = np.pad(img, pad_width = [[ps, ps], [ps, ps], [0, 0]],
                           mode = 'constant', constant_values = 0)
         patches[j, :, :, :] =  pimg[i[1] + ps // 2 : i[1] + (3 * ps // 2),
-                                    i[2] + ps // 2 : i[2] + (3 * ps // 2)]
+                                    i[2] + ps // 2 : i[2] + (3 * ps // 2), :]
         k = masks[i[0], i[1], i[2]]
         ohe_labels[j, int(k)] = 1. # One-hot encode the masks
 
@@ -258,7 +263,7 @@ class Tester(object):
 
             self.tf_saver.restore(session, './checkpoints/'+self.test_id+'.ckpt')
 
-            predictions = np.zeros_like(images, dtype = np.float32).flatten()
+            predictions = np.zeros_like(masks, dtype = np.float32).flatten()
 
             for j, ix in enumerate(np.array(np.nonzero(np.ones_like(masks))).T):
                 ix               = np.array([ix])
