@@ -69,13 +69,6 @@ def model(TF):
             activation1 = Layer1.training(data_in)
             activation2 = Layer2.training(activation1)
             projection  = Layer3.training(activation2)
-
-            TF['summary_train'].append(tf.summary.histogram('FirstLayerFilters',
-                                                            Layer1.filters))
-            TF['summary_train'].append(tf.summary.histogram('SecondLayerFilters',
-                                                            Layer2.filters))
-            TF['summary_train'].append(tf.summary.histogram('ThirdLayerWeights',
-                                                            Layer3.weights))
             return projection
 
         def testing_model(data_in):
@@ -89,14 +82,34 @@ def model(TF):
             TF['loss']              = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(
                                                         logits = training_logits,
                                                         labels = TF['labels']))
-            TF['optimize']          = tf.train.GradientDescentOptimizer(
-                                                TF['learning_rate']).minimize(TF['loss'])
+            with tf.name_scope('Gradients'):
+                optimizer = tf.train.GradientDescentOptimizer(TF['learning_rate'])
+                vars_to_update = [Layer1.filters, Layer2.filters, Layer3.weights,
+                                  Layer1.biases, Layer2.biases, Layer3.biases]
+                gradients      = optimizer.compute_gradients(TF['loss'],
+                                                             var_list = vars_to_update)
+                TF['optimize'] = optimizer.apply_gradients(gradients)
+
             TF['training_predictions'] = tf.nn.softmax(training_logits)
             TF['training_accuracy'] = tf.contrib.metrics.accuracy(
                                             tf.argmax(TF['labels'], axis = 1),
                                             tf.argmax(TF['training_predictions'], axis = 1))
             TF['summary_train'].append(tf.summary.scalar('TrainingAccuracy',
                                                          TF['training_accuracy']))
+
+            # Diagnostics
+            TF['summary_train'].append(tf.summary.histogram('FirstLayerFilters',
+                                                            Layer1.filters))
+            TF['summary_train'].append(tf.summary.histogram('SecondLayerFilters',
+                                                            Layer2.filters))
+            TF['summary_train'].append(tf.summary.histogram('ThirdLayerWeights',
+                                                            Layer3.weights))
+            TF['summary_train'].append(tf.summary.histogram('FirstLayerGradients',
+                                                            gradients[0][0]))
+            TF['summary_train'].append(tf.summary.histogram('SecondLayerGradients',
+                                                            gradients[1][0]))
+            TF['summary_train'].append(tf.summary.histogram('ThirdLayerGradients',
+                                                            gradients[2][0]))
 
         with tf.name_scope('Testing'):
             testing_logits            = testing_model(TF['data'])

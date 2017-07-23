@@ -39,6 +39,7 @@
 \usepackage{amsmath}
 \usepackage{amssymb}
 \usepackage{csquotes}
+\usepackage{tikz}
 \graphicspath{{./images/}}
 
 \newlength{\mylen}
@@ -1514,5 +1515,147 @@ Took the evening off.
 Refactored the testing utility (again). It's now notebook-friendly. The change was spurred by dissatisfactory results when running an experiment against a variety of image and patch sizes.
 
 \labday{Friday, 21st July 2017}
+(08:10 - 12:15) I set up patch and image size tests under new infrastructure, then set them running. While the models were training I read the batch normalization paper \emph{Batch Normalization: Accelerating Deep Network Training by Reducing Internal Covariate Shift}. I'll write out a summary of it when I get back.
+(13:00 - 15:30) Spatial transformer networks paper. Complete test results for basic convnets against pixel intensities (high resolution encouraged better performance).
+(18:00 - 21:00) Passed stack of Gabor/Sobel filtered and intensity inputs to two-layer convnet. Generalized some of the testing code. Tomorrow experiment with batch normalization and inception modules.
 
+
+\labday{Saturday, 22nd July 2017}
+(08:30 - 13:00) Wrestled with TensorFlow code for batch normalization, to no avail.
+(17:00 - 21:00) Revised modeling strategy - bumped models to an object-oriented format (much cleaner). Observed some unusual behaviour when training the batch-normalized networks: thin networks (i.e. ones with few feature maps per layer) saw little benefit from BN, whereas much broader ones did. Why is this? I suppose first I should point out why some networks may fail to converge, and how batch normalization enables networks to learn more rapidly.
+(21:00 - 22:30) Refreshed my memory of backpropagation - time well spent.
+
+ Backpropagation is an algorithm for computing gradients in neural networks (or, more generally, directed acyclic graphs). Consider a graph in which we have a series of nodes $u^{(1)}, ... u^{(n)}$, with each node $u^{(i)}$ corresponding to a scalar variable. Variables from which a node is computed via some function $f^{(i)}$ are known as node $i$'s parents. Graphically, directed arcs between nodes indicate parentage: We denote the parents of a given node $u^{(i)}$ by $\mathcal{A^{(i)}}$, and we'll use  $\text{pa}[i]$ to refer to the indices of node $i$'s parents.
+ 
+ Say that we wished to compute the rate of change of the output of this network, $u^{(n)}$, with respect to a variable $u^{(i)}$ in the graph, holding all other variables fixed. In notation, we seek:
+ \[
+ 	\frac{\partial u^{(n)}}{\partial u^{(i)}}
+ \]
+ We can evaluate this quantity by recursively applying the chain rule:
+ \[
+ 	\frac{\partial u^{(n)}}{\partial u^{(i)}}
+ 	 = \sum_{j: i \in \text{pa}[j]} \frac{\partial u^{(n)}}{\partial u^{(j)}}\cdot \frac{\partial u^{(j)}}{\partial u^{(i)}}
+ 	 =  \sum_{j: i \in \text{pa}[j]}  \frac{\partial u^{(j)}}{\partial u^{(i)}} \cdot
+ 	  \sum_{k: j \in \text{pa}[k]} \frac{\partial u^{(j)}}{\partial u^{(k)}} \cdot \frac{\partial u^{(n)}}{\partial u^{(k)}}
+ \]
+We can keep expanding the derivatives until we reach the final layer in the network before $u^{(n)}$, where the expression for the gradient can be evaluated (if possible). Backpropagation allows us to efficiently evaluate expressions such as the above when computing derivatives with respect to many nodes in the network. Rather than re-evaluating a given gradient w.r.t. the output each time it is needed, we compute it once, then store it. When we move towards earlier layers in the network, we can look up this gradient rather than compute it - this reduces execution time.
+
+% !Simple network diagram! %
+\begin{figure}[htbp]
+\centering
+%% Graph Element Definitions %%
+\tikzstyle{node}=[circle,
+			thick,
+			minimum size=1.3cm,
+			draw=black,
+			fill=white]
+
+	\begin{tikzpicture}[>=latex, text height=1.5ex, text depth=0.25ex]
+
+	% Matrix
+	\matrix[row sep=0.5cm, column sep = 1cm]{
+	\node (u_1) [node] {$u^{(1)}$}; &\node (u_5) [node] {$u^{(5)}$};  & & \node (inv1) {}; & & \\
+	\node (u_2) [node] {$u^{(2)}$}; & \node (u_6) [node] {$u^{(6)}$}; & & \node (inv2) {}; & \node (u_n-2) [node] {$u^{(n-2)}$}; & \node (u_n) [node] {$u^{(n)}$}; \\
+	\node (u_3) [node] {$u^{(3)}$};	 & \node (u_7) [node] {$u^{(7)}$}; & & \node (inv3) {}; & \node (u_n-1) [node] {$u^{(n-1)}$}; & \\
+	\node (u_4) [node] {$u^{(4)}$};	 & \node (u_8) [node] {$u^{(8)}$}; & & \node (inv4) {}; &  & \\
+	};
+	
+	\path[->] % Specify path type as an option
+	% First layer's connections
+		(u_1) edge (u_5)
+		(u_1) edge (u_6)
+		(u_1) edge (u_7)
+		(u_1) edge (u_8)
+		(u_2) edge (u_5)
+		(u_2) edge (u_6)
+		(u_2) edge (u_7)
+		(u_2) edge (u_8)
+		(u_3) edge (u_5)
+		(u_3) edge (u_6)
+		(u_3) edge (u_7)
+		(u_3) edge (u_8)
+		(u_4) edge (u_5)
+		(u_4) edge (u_6)
+		(u_4) edge (u_7)
+		(u_4) edge (u_8)
+		
+	% Intermediate layer's connections
+		(u_5) -- node[auto=false]{\ldots} (inv1)
+		(u_6) -- node[auto=false]{\ldots} (inv2)
+		(u_7) -- node[auto=false]{\ldots} (inv3)
+		(u_8) -- node[auto=false]{\ldots} (inv4)
+		
+	% Penultimate layer's connections
+		(inv1) edge (u_n-1)
+		(inv2) edge (u_n-1)
+		(inv3) edge (u_n-1)
+		(inv4) edge (u_n-1)
+		(inv1) edge (u_n-2)
+		(inv2) edge (u_n-2)
+		(inv3) edge (u_n-2)
+		(inv4) edge (u_n-2)		
+		
+	% Final node's connections
+		(u_n-1) edge (u_n)
+		(u_n-2) edge (u_n)
+		;
+	\end{tikzpicture}
+	
+		\begin{tikzpicture}[>=latex, text height=1.5ex, text depth=0.25ex]
+
+	% Matrix
+	\matrix[row sep=0.5cm, column sep = 1cm]{
+	\node (u_1) [node] {$\frac{\partial u^{(n)}}{\partial u^{(1)}}$};	 &\node (u_5) [node] {$\frac{\partial u^{(n)}}{\partial u^{(5)}}$};  & & \node (inv1) {}; & & \\
+	\node (u_2) [node] {$\frac{\partial u^{(n)}}{\partial u^{(2)}}$}; 	& \node (u_6) [node] {$\frac{\partial u^{(n)}}{\partial u^{(6)}}$}; & & \node (inv2) {}; & \node (u_n-2) [node] {$\frac{\partial u^{(n)}}{\partial u^{(n-2)}}$}; & \node (u_n) [node] {$u^{(n)}$}; \\
+	\node (u_3) [node] {$\frac{\partial u^{(n)}}{\partial u^{(3)}}$};	 & \node (u_7) [node] {$\frac{\partial u^{(n)}}{\partial u^{(7)}}$}; & & \node (inv3) {}; & \node (u_n-1) [node] {$\frac{\partial u^{(n)}}{\partial u^{(n-1)}}$}; & \\
+	\node (u_4) [node] {$\frac{\partial u^{(n)}}{\partial u^{(4)}}$};	 & \node (u_8) [node] {$\frac{\partial u^{(n)}}{\partial u^{(8)}}$}; & & \node (inv4) {}; &  & \\
+	};
+	
+	\path[<-] % Specify path type as an option
+	% First layer's connections
+		(u_1) edge (u_5)
+		(u_1) edge (u_6)
+		(u_1) edge (u_7)
+		(u_1) edge (u_8)
+		(u_2) edge (u_5)
+		(u_2) edge (u_6)
+		(u_2) edge (u_7)
+		(u_2) edge (u_8)
+		(u_3) edge (u_5)
+		(u_3) edge (u_6)
+		(u_3) edge (u_7)
+		(u_3) edge (u_8)
+		(u_4) edge (u_5)
+		(u_4) edge (u_6)
+		(u_4) edge (u_7)
+		(u_4) edge (u_8)
+		
+	% Intermediate layer's connections
+		(u_5) -- node[auto=false]{\ldots} (inv1)
+		(u_6) -- node[auto=false]{\ldots} (inv2)
+		(u_7) -- node[auto=false]{\ldots} (inv3)
+		(u_8) -- node[auto=false]{\ldots} (inv4)
+		
+	% Penultimate layer's connections
+		(inv1) edge (u_n-1)
+		(inv2) edge (u_n-1)
+		(inv3) edge (u_n-1)
+		(inv4) edge (u_n-1)
+		(inv1) edge (u_n-2)
+		(inv2) edge (u_n-2)
+		(inv3) edge (u_n-2)
+		(inv4) edge (u_n-2)		
+		
+	% Final node's connections
+		(u_n-1) edge (u_n)
+		(u_n-2) edge (u_n)
+		;
+	\end{tikzpicture}
+
+\caption{\emph{(Top)} A multi-layer perceptron. \emph{(Bottom)} Its associated backpropagation graph.}
+\end{figure}
+
+
+\labday{Sunday, 23rd July 2017}
+(13:30 - 15:00} Learnt to use Tikz, described back-propagation work from yesterday. One important point I neglected to mention was that the derivative of the network's output w.r.t. an arbitrary tensor can be understood using the example same principle.
  \end{document}
