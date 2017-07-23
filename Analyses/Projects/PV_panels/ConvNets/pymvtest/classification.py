@@ -110,7 +110,7 @@ def get_batch_indices(masks, batch_size):
                                                   size = batch_size//2),
                                   :]
     ix = np.concatenate([ix['crack'], ix['nocrack']], axis = 0)
-    return ix
+    return np.random.permutation(ix)
 
 def get_patches(images, masks, ix, patch_size):
     # Accepts a stack of images, masks, and indices
@@ -149,27 +149,8 @@ class Tester(object):
     Arguments:
         dataset       : np.float32 stack of images (NHWC)
         masks         : np.float32 stack of binary masks (NHW)
-        TF            : Dictionary containing configuration and tensorflow variables
-                        {
-                         'seed':<int>,
-                         'batch_size':<int>,
-                         'training_steps':<int>,
-                         'graph':<Python namespace for the TF graph>,
-                         'optimizer':<Python namespace for optimizer operation>,
-                         'loss':<Python namespace for loss tensor>,
-                         'summary':<Python namespace for summary operation>,
-                         'training_data':<Python namespace for training data tensor>,
-                         'training_labels':<Python namespace for training labels tensor>,
-                         'training_predictions':<Python namespace for training predictions tensor>,
-                         'validation_data':<Python namespace for validation data tensor>
-                         'validation_labels':<Python namespace for validation labels tensor<
-                         'validation_predictions':<Python namespace for validation predictions tensor>,
-                         }
-        preprocessing : def func(self, dataset, masks, mode):
-                        ...
-                        return processed_images, ohe_labels
+        TF            : dictionary
 
-     This library uses numpy and tensorflow for all operations.
     """
 
     def __init__(self, dataset, masks, TF):
@@ -183,13 +164,16 @@ class Tester(object):
 
         self.tf_loss          = TF['loss']           # Namespace of tensorflow loss tensor
         self.tf_graph         = TF['graph']          # A TensorFlow graph
-        self.tf_optimizer     = TF['optimizer']      # Namespace of tensorflow optimizer operation
+        self.tf_optimize      = TF['optimize']      # Namespace of tensorflow optimizer operation
         self.tf_data          = TF['data']           # Namespace of tensorflow data
         self.tf_labels        = TF['labels']         # Namespace of tensorflow labels
-        self.tf_predictions   = TF['predictions']    # Namespace of tensorflow predictions
-        self.tf_accuracy      = TF['accuracy']       # Namespace of tensorflow accuracy
-        self.tf_train_summary = TF['train_summary']
-        self.tf_saver         = TF['saver']
+
+        self.tf_train_accuracy     = TF['training_accuracy']
+        self.tf_test_accuracy      = TF['testing_accuracy']
+        self.tf_test_predictions   = TF['testing_predictions']
+        self.tf_train_summary      = TF['train_summary']
+        self.tf_test_summary       = TF['test_summary']
+        self.tf_saver              = TF['saver']
 
         self.patch_size         = TF['patch_size']
         self.image_size         = TF['image_size'] # Determines what size to resize images to
@@ -209,7 +193,7 @@ class Tester(object):
                                                                          fraction = self.split_fraction)
         print('Training dataset dimensions: {}'.format(self.dataset['train'].shape))
         print('Validation dataset dimensions: {}'.format(self.dataset['valid'].shape))
-        # NOTE: by-pixel label masks -> Preprocessor -> ohe label for each image returned
+
 
     def fit_model(self):
         """
@@ -224,20 +208,20 @@ class Tester(object):
             valid_writer  = tf.summary.FileWriter('./results/'+self.test_id+'/valid', session.graph)
 
             for step in range(self.training_steps):
-                    if step % 100 == 0: # Validate
+                    if (step != 0) and (step % 100 == 0): # Validate
                         val_batch, val_labels = get_batch(self.dataset['valid'],
                                                           self.labels['valid'],
                                                           batch_size = 1000,
                                                           patch_size = self.patch_size)
                         val_fd  = { self.tf_data   : val_batch,
                                     self.tf_labels : val_labels }
-                        s, val_acc, val_loss = session.run([self.tf_train_summary,
-                                                            self.tf_accuracy, self.tf_loss],
+                        s, val_acc, val_loss = session.run([self.tf_test_summary,
+                                                            self.tf_test_accuracy,
+                                                            self.tf_loss],
                                                             feed_dict = val_fd)
-                        if step != 0:
-                            print('(Step {:^5d}) Minibatch accuracy: {:>8.2f}'.format(step, tr_acc))
-                            print('(Step {:^5d}) Minibatch loss: {:>12.4f}'.format(step, l))
-                        print('(Step {:^5d}) Validation accuracy: {:>7.2f}\n'.format(step, val_acc))
+                        print('\n(Step {:^5d}) Minibatch accuracy: {:>8.2f}'.format(step, tr_acc))
+                        print('(Step {:^5d}) Minibatch loss: {:>12.4f}'.format(step, l))
+                        print('(Step {:^5d}) Validation accuracy: {:>7.2f}'.format(step, val_acc))
                         valid_writer.add_summary(s, step)
 
                     else: # Train
@@ -248,8 +232,10 @@ class Tester(object):
                         train_batch = augment_images(train_batch)
                         fd = { self.tf_data:train_batch,
                                self.tf_labels:train_labels }
-                        s, _, l, tr_acc = session.run([self.tf_train_summary, self.tf_optimizer, self.tf_loss,
-                                                       self.tf_accuracy], feed_dict = fd)
+                        s, _, l, tr_acc = session.run([self.tf_train_summary,
+                                                       self.tf_optimize,
+                                                       self.tf_loss,
+                                                       self.tf_train_accuracy], feed_dict = fd)
                         train_writer.add_summary(s, step)
 
             self.tf_saver.save(session, './checkpoints/'+self.test_id+'.ckpt')
@@ -269,22 +255,7 @@ class Tester(object):
                 ix               = np.array([ix])
                 q_patch, q_label = get_patches(images, masks, ix, self.patch_size)
                 fd               = {self.tf_data:q_patch, self.tf_labels:q_label}
-                predictions[j]   = session.run(self.tf_predictions, feed_dict = fd)[0, 1]
+                predictions[j]   = session.run(self.tf_test_predictions, feed_dict = fd)[0, 1]
 
             predictions = predictions.reshape(masks.shape)
         return predictions, masks
-
-    def write_model_spec(self):
-        # Write model spec. to text file
-        with open('./results/'+self.test_id+'/'+self.test_id+'.txt', 'w') as file:
-            test_spec = {
-                         'test_id':self.test_id,
-                         'model_id':self.model_id,
-                         'preprocessor_id':self.preprocessor_id,
-                         'seed':self.seed,
-                         'split_fraction':self.split_fraction,
-                         'batch_size':self.batch_size,
-                         'patch_size':self.patch_size,
-                         'image_size':self.image_size
-                         }
-            file.write(json.dumps(test_spec))
