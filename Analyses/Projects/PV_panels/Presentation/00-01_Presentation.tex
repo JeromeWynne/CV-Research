@@ -301,22 +301,84 @@ TensorFlow was chosen as a development platform. Very good reasons for this\foot
 \end{frame}
 
 \begin{frame}{Convolutional Neural Networks}
-	With a convolutional neural network, we learn a nonlinear transformation that makes the classes linearly separable. 
+	With a convolutional neural network, we learn a nonlinear transformation that makes the classes linearly separable. We can then use a simple classifier (e.g. logistic regression) to discriminate between the classes.
 \end{frame}
 
 
 \begin{frame}{Experimental Results}
-\textbf{Gabor Filter}
+\textbf{Gabor Filtering}
 
 A Gabor filter is an image processing tool for extracting edges from an image. For our purposes, it consists of convolving an input image with an oriented 2D decaying sinusoidal kernel.
 
+	\begin{figure}
+		\includegraphics[width=\textwidth]{Gabor_filter_summary.pdf}
+		\caption{We convolve a 2D sinusoidal kernel (\emph{left}) with an image (\emph{right}) to yield an edge-based representation of the image (\emph{right})}. 
+	\end{figure}	
 
+\end{frame}
+
+\begin{frame}{Experimental Results}
+\textbf{Sobel and Gabor filtering}
+
+By computing the intensity derivatives\footnote{via a Sobel filter} in the horizontal direction, then taking the result's derivatives in the vertical direction, it was possible to suppress a large proportion of the noise.
+
+\begin{figure}
+	\includegraphics[width=\textwidth]{Sobel_and_Gabor_filtering.png}
+	\caption{(\emph{Left}) Input image; (\emph{Center}) Derivatives followed by a difference of Gabor filters; (\emph{Right}) One of the Gabor kernels used - the other is flipped across the vertical axis.}
+\end{figure}
 
 \end{frame}
 
 
-\begin{frame}{Histograms of Oriented Gradients}
-asd
+\begin{frame}{Experimental Results}
+\textbf{Histograms of oriented gradients}
+
+A weakness of the Sobel+Gabor composition is that it does not suppress unwanted image artifacts with slanted edges, such as other panel defects. To circumvent this issue, we introduced a HOG descriptor that binned gradient orientations over image cells.
+
+\begin{figure}
+	\includegraphics[width=0.8\textwidth]{HOG_crack_sample.png}
+	\caption{(\emph{Left}) Image patch; (\emph{Right}) Visualization of orientation histograms: Large gradients are in the slant-wise direction only.}
+\end{figure}
+
+\end{frame}
+
+\begin{frame}{Experimental Results}
+\textbf{Histograms of oriented gradients contd.}
+
+\begin{figure}
+	\includegraphics[width=0.8\textwidth]{HOG_nocrack_sample.png}
+	\caption{Another patch. Large gradients in all directions $\implies$ network may be able to learn a dynamic threshold that suppresses this sort of thing.}
+\end{figure}
+
+\end{frame}
+
+\begin{frame}{Experimental Results}
+\textbf{Passing alternative representations into the network}
+
+We can pass these alternative representations into the network by appending them as additional channels to the original image of pixel intensities.
+
+For the HOG descriptor, each channel corresponds to a bin orientation \footnote{we project this tensor onto a space of the same dimensionality as the input patch.}
+\begin{figure}
+	\includegraphics[width=0.7\textwidth]{Stacked_inputs.pdf}
+	\caption{Filtered images were stacked with the original grayscale intensities to pass the feature set to the network.}
+\end{figure}
+
+\end{frame}
+
+\begin{frame}{Experimental Results}
+\textbf{Batch normalization}
+
+We normalize the output of each layer so that the input distribution to each layer is of a constant magnitude during training. This serves to avoid very large/small gradients, properly condition the second derivative of the loss surface. \emph{Present results}.
+
+\textbf{Spatial transformer networks}
+
+We plan to introduce a subnetwork that learns the parameters of an affine transform. This affine transform is applied to the input image to produce a cropped version of the original image, conceivably reducing processing time.
+
+\textbf{Image and patch size}
+
+\emph{See results }
+
+
 \end{frame}
 
 \begin{frame}[standout]
@@ -325,7 +387,7 @@ asd
 
 
 \begin{frame}{References}
-  Some references to showcase [allowframebreaks] \cite{knuth92,ConcreteMath,Simpson,Er01,greenwade93}
+\cite{knuth92,ConcreteMath,Simpson,Er01,greenwade93}
 \end{frame}
 
 
