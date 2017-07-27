@@ -183,13 +183,13 @@
 \textbf{Vanilla preprocessing procedure}
   \begin{itemize}
   	\item[-] Resize the images ($965 \times 965 \rightarrow 200 \times 200$).
-  	\item[-] Apply a global per-pixel mean subtraction and scaling by standard deviation (a.k.a. \emph{whitening})\footnote{whitening encourages numerical stability and suppresses common artifacts.}
+  	\item[-] Apply a global per-pixel mean subtraction and scaling by standard deviation (a.k.a. \emph{whitening})\footnote{whitening encourages numerical stability and homogenizes the feature distribution.}
 \end{itemize}
 
 \textbf{Training protocol}
 \begin{itemize}
   	\item[-] Compute parameters with closed-form expressions over the entire training set.
-  	\item[-] On-line minibatch training - gather a balanced minibatch across all pixels only as needed (1.5m+ negative examples, $<$ 10k positive examples).
+  	\item[-] Online learning - gather a balanced minibatch across all pixels only as needed (1.5m+ negative examples, $<$ 10k positive examples).
   	\item[-] Apply basic patch augmentations (flipping, rotation, intensity shifts).
   \end{itemize}
 \end{frame}
@@ -254,6 +254,43 @@ TensorFlow was chosen as a development platform. Very good reasons for this\foot
 	\end{itemize}
 \end{frame}
 
+\begin{frame}{Models \& Representations}
+	\textbf{Proposed novel architecture}
+	
+	Set-up:
+	\begin{enumerate}
+		\item Pre-train a convolutional network to classify image regions centered on individual pixels as fault/no-fault (e.g. classify against 20 x 20px patches)
+		\item Train a generative model against full image masks that indicate fault/no-fault (e.g. 900 x 900px label masks).
+		\item Insert a subnetwork into the original convnet. Its function is described on the following slide.
+	\end{enumerate}
+\end{frame}
+
+\begin{frame}{Models \& Representations}
+	\textbf{Proposed novel architecture contd.}
+	
+	When the model is queried:
+	\begin{enumerate}
+		\item The subnetwork returns an image-sized mask indicating a subset of pixels at which to run the convnet's classifier.
+		\item The convnet subsequently estimates the probability of a fault at each of the pixels in the subset.
+		\item Impute for the class of the pixels not in the subset. Do this by computing the mean of the generative model as conditioned upon the class estimates for the pixels that were in the subset.
+		\item Return the resulting complete set of pixel class estimates.
+	\end{enumerate}
+\end{frame}
+
+\begin{frame}{Models \& Representations}
+	\textbf{Proposed novel architecture contd.\textsuperscript{2}}
+	
+	Why is this a reasonable idea?
+	\begin{itemize}
+	\item[-] Expensive to pass all image regions through the convolutional network.
+	\item[-] Inexpensive to conditionally impute in a simple generative model.
+	\end{itemize}
+	
+	\vfill
+	Train the subnetwork by penalizing the \# of pixels that are classified by the convolutional network.
+	
+	$\implies$ Learned model applies the convolutional network to as few pixels as necessary.
+\end{frame}
 
 
 %% >> Results << %%
@@ -266,9 +303,9 @@ TensorFlow was chosen as a development platform. Very good reasons for this\foot
 	\[
 		\text{Pr}(\mathbf{x}|y = k, \boldsymbol{\mu}_k, \mathbf{\Sigma}_k) = \text{Norm}_{\mathbf{x}}[\mathbf{x}, \boldsymbol{\mu}, \mathbf{\Sigma}]
 	\]
-	Where $\boldsymbol{\mu}_k, \mathbf{\Sigma}_k$ are the class mean and covariance respectively. A Bernoulli prior was used, parameterized by the base rate $\lambda$. The maximum likelihood estimate of these parameters was taken.
+	Where $\boldsymbol{\mu}_k, \mathbf{\Sigma}_k$ are the class mean and covariance respectively. A Bernoulli prior was used, parameterized by the base rate $\lambda$. The maximum likelihood estimate of these parameters was used.
 	
-	 For inference, the maximum \emph{a posteriori} class was taken:
+	 Inference returne the maximum \emph{a posteriori} class estimate:
 	\[
 		\hat{y} = \argmax_k \Big[\text{Pr}(\mathbf{x}|y = k, \boldsymbol{\mu}_k, \mathbf{\Sigma}_k) \cdot \text{Pr}(y = k, \lambda_k) \Big]
 	\]
@@ -311,6 +348,17 @@ TensorFlow was chosen as a development platform. Very good reasons for this\foot
 	Various architectures were tested. These will now be described (\emph{pending}).
 \end{frame}
 
+\begin{frame}{Experimental Results}
+\textbf{Convolutional networks: Batch normalization}
+
+We normalize the output of each layer so that the input distribution to each layer is of a constant magnitude during training. This serves to avoid very large/small gradients. It also properly conditions the second derivative of the loss surface, encouraging stable convergence. \emph{Present results}.
+
+\textbf{Convolutional networks: Spatial transformer subnetworks}
+
+We plan to introduce a subnetwork that learns the parameters of an affine transform. This affine transform is applied to the input image to produce a cropped version of the original image, potentially reducing panel processing time.
+
+\end{frame}
+
 
 \begin{frame}{Experimental Results}
 \textbf{Gabor Filtering}
@@ -327,7 +375,7 @@ A Gabor filter is an image processing tool for extracting edges from an image. F
 \begin{frame}{Experimental Results}
 \textbf{Sobel and Gabor filtering}
 
-By computing the intensity derivatives\footnote{via a Sobel filter} in the horizontal direction, then taking the result's derivatives in the vertical direction, it was possible to suppress a large proportion of the noise.
+By computing the intensity derivatives\footnote{via a Sobel filter} in the horizontal direction, then taking the result's derivatives in the vertical direction, it was possible to suppress much of the noise.
 
 \begin{figure}
 	\includegraphics[width=\textwidth]{Sobel_and_Gabor_filtering.png}
@@ -336,6 +384,19 @@ By computing the intensity derivatives\footnote{via a Sobel filter} in the horiz
 
 \end{frame}
 
+\begin{frame}{Experimental Results}
+	\begin{figure}
+	\includegraphics[width=0.6\textwidth]{batch_normalization_results_1.png}
+	\caption{(\emph{Top}) Query images. (\emph{Bottom}) CNN estimated crack probabilities.}
+	\end{figure}
+\end{frame}
+
+\begin{frame}{Experimental Results}
+	\begin{figure}
+	\includegraphics[width=0.3\textwidth]{batch_normalization_results_2.png}
+	\caption{(\emph{Top}) Query images. (\emph{Bottom}) CNN estimated crack probabilities.}
+	\end{figure}
+\end{frame}
 
 \begin{frame}{Experimental Results}
 \textbf{Histograms of oriented gradients}
@@ -351,6 +412,8 @@ A weakness of the Sobel+Gabor composition is that it does not suppress unwanted 
 
 \begin{frame}{Experimental Results}
 \textbf{Histograms of oriented gradients contd.}
+
+If an image region contains gradients in all directions, then we want the network to recognise that any diagonal elements probably \emph{do not} correspond to a crack.
 
 \begin{figure}
 	\includegraphics[width=0.8\textwidth]{HOG_nocrack_sample.png}
@@ -369,24 +432,38 @@ Each channel of the HOG descriptor corresponds to a gradient orientation\footnot
 	\includegraphics[width=0.6\textwidth]{Stacked_inputs.pdf}
 	\caption{Filtered images were stacked with the original grayscale intensities to pass the feature set to the network.}
 \end{figure}
-
 \end{frame}
 
 \begin{frame}{Experimental Results}
-\textbf{Batch normalization}
+\textbf{HOGs, Sobel, and Gabor filtering}
 
-We normalize the output of each layer so that the input distribution to each layer is of a constant magnitude during training. This serves to avoid very large/small gradients. It also properly conditions the second derivative of the loss surface, encouraging stable convergence. \emph{Present results}.
-
-\textbf{Spatial transformer networks}
-
-We plan to introduce a subnetwork that learns the parameters of an affine transform. This affine transform is applied to the input image to produce a cropped version of the original image, potentially reducing panel processing time.
-
-\textbf{Image and patch size}
-
-\emph{See results }
-
-
+(\emph{Image of classification performance})
 \end{frame}
+
+\begin{frame}{Experimental Results}
+\textbf{Moving from 52 images to 10k+}
+
+(\emph{Discussion of change in resolution, panel extraction.})
+\end{frame}
+
+\begin{frame}{Experimental Results}
+\textbf{Semi-supervised learning (?)}
+
+(\emph{Discuss experiments with deep generative models.})
+\end{frame}
+
+\begin{frame}{Experimental Results}
+\textbf{Deep convolutional neural network performance}
+
+(\emph{Discuss final performance of deep convolutional network.})
+\end{frame}
+
+\begin{frame}{Experimental Results}
+\textbf{Region-filtering for fast inference}
+
+(\emph{Discuss experiments with convolutional networks supplemented by class imputer.})
+\end{frame}
+
 
 \begin{frame}[standout]
   Questions?
@@ -441,21 +518,22 @@ Pending
 \begin{frame}{Appendix: Panel Extraction}
 	\textbf{Line detection}
 
-	After thresholding and cropping the images, a line detector was applied. The detector was a product over the image axes. For vertical lines, this was:
+	After thresholding and cropping the images, a line detector was applied. This was a function that sought unbroken rows/columns of black pixels. For horizontal lines, this function's was of the form:
 	\[
-		\text{Line score} = \prod_{i = 1}^{W} \gamma^{1 - x_i}
+		\text{Line score for the $i^{\text{th}}$ row} = \Big(\frac{W^{(i)}_{+}}{W}\Big)^\beta
 	\]
-	Where $W$ denotes the image's width in pixels, $\gamma$ allows us to tune the detector's sensitivity, and $x_i$ is the binary $i$th binary pixel value. Note that:
-	\[
-		0.99^{1 - x_i} = \begin{cases}
-					1 & \text{if} \quad x_i = 1 \\
-					0.99 & \text{if} \quad x_i = 0
-				      \end{cases}
-	\]
-	Where we've adopted $\gamma = 0.99$ for the purposes of example. 
-	
-	This function was chosen to penalize zero pixels exponentially - the more pixels that are zero, the greater the cost of an additional zero pixel.
+	Where $W$ denotes the image width (in pixels),  $W^{(i)}_{+}$ is the number of black pixels in the $i^{\text{th}}$ row, and $\beta \in \mathbb{R}$ is a scalar that allows us to tune the detector's response. 
 \end{frame}
+
+\begin{frame}{Appendix: Panel Extraction}
+\textbf{Line detection contd.}
+
+	\begin{figure}
+	\includegraphics[width=1\textwidth]{line_detector_score.pdf}
+	\caption{The line scoring function for various values of $\beta$.  When almost all pixels in a row are black (indicating a line), the response is strong. We can penalize non-black values more aggressively by using a larger $\beta$ value.}
+	\end{figure}
+\end{frame}
+
 
 \begin{frame}{Appendix: Panel Extraction}
 	\textbf{Line detection}
