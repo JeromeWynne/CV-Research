@@ -1198,8 +1198,8 @@ Instance setup:
 	\item Install Anaconda 3+
 	\item Install CUDA Toolkit and drivers:
 	\begin{itemize}
-	\item Install gcc (GNU compiler collection, the compiler that CUDA uses)
-	\item Install kernel headers and development packages for the running version of the kernel (these are required by the CUDA Driver).
+	\item Install gcc (GNU compiler collection, the compiler that CUDA uses) \texttt{sudo apt install gcc}
+	\item Install kernel headers and development packages for the running version of the kernel (these are required by the CUDA Driver - kernel headers declare an API that allows other software to interact with the Linux kernel).
 	\item The CUDA Toolkit can be installed using either a [Linux] distribution-specific package, or a [Linux] distribution-independent package. Download and install the Nvidia CUDA Toolkit - this contains the CUDA driver and tools needed to create, build and run a CUDA application. USE THE .DEB INSTALL - THE OTHER ONE GAVE US TROUBLE. This is installed via the package manager, not the runfile.
 	\item Post-installation mandatory actions: add the CUDA \texttt{bin} directory to the \texttt{PATH} variable.
 	\item To verify the installation, install the samples with write permissions using the convenience script.
@@ -1657,10 +1657,36 @@ We can keep expanding the derivatives until we reach the final layer in the netw
 
 
 \labday{Sunday, 23rd July 2017}
-(13:30 - 15:00} Learnt to use Tikz, described back-propagation work from yesterday. One important point I neglected to mention was that the derivative of the network's output w.r.t. an arbitrary tensor can be understood using the example same principle.
+(13:30 - 15:00) Learnt to use Tikz, described back-propagation work from yesterday. One important point I neglected to mention was that the derivative of the network's output w.r.t. an arbitrary tensor can be understood using the example same principle.
 (15:00 - 17:30) Reading Goodfellow's \emph{Deep Learning} - Hessian, ill-conditioning, understanding the behaviour of the cost surface in high-dimensional feature spaces, understanding why it is necessary to shrink the learning rate as we approach convergence (magnitude of the Hessian's eigenvalues increases).
 
 (17:30 - 21:30) Adding HOGs to model.
 
 
+\labday{3rd August 2017}
+
+\experiment{Serial Peripheral Interface}
+Serial Peripheral Interface is a synchronous serial data protocol. \emph{Synchronous} means that the transmitter and receiver are running at the same rate (i.e. their clocks - components that emit a pulse at a constant rate to coordinate actions between components - are synchronised). Practically, this means that the transmitter and receiver can pass each other messages without having to indicate when a message begins/ends. \emph{Serial} refers to the fact that it sends one bit of information at a time along a single channel (as opposed to multiple bits simultaneously). SPI is a \emph{protocol} - it's an agreed upon set of rules between the transmitter and receiver regarding syntax, semantics, synchronisation, and error recovery methods.
+
+The Serial Peripheral Interface initializes one device as the Master, and other devices as Slaves. Here, \emph{peripheral device} simply refers to devices that are not the central computer (in this case, the microcontroller). To allow communication between the Master and Slave devices, three lines are needed:
+\begin{itemize}
+	\item A MOSI line (Master Out, Slave In) - this line allows the Master device to send instructions to the peripheral (Slave) devices.
+	\item A MISO line (Master In, Slave Out) - this line allows the peripheral devices to respond to the Master device.
+	\item An SCK line - this line contains the clock pulses which synchronize data transmission.
+\end{itemize}
+In addition to these lines, one channel is required per peripheral device to allow the Master to select the Slave to communcate with: when this line is LOW the Slave receives the Master's transmissions, but when it is HIGH it does not.
+\begin{itemize}
+	\item SS (Slave select) - Line that allows a peripheral device to receive communications from the Master.
+\end{itemize}
+Configuring communication between SPI devices requires several settings be determined:
+\begin{itemize}
+	\item Communication rate - this is determined by the Master's clock speed.
+	\item Message sequence - does the most significant bit (MSB) or least significant bit (LSB) appear first in messages sent between the Master and Slave?
+	\item Clock idle mode and sampling (Are messages sent and sampled on the rising or falling edge of clock pulses?)
+\end{itemize}
+On the Arduino, SPI communication can be initialized using an \texttt{SPISettings} object, which is in the \texttt{SPI} library:
+	\[
+	\texttt{SPI.beginTransaction(SPISettings(14000000, MSBFIRST, SPI\_MODE0));}
+	\]
+Once this has been done, it's possible to pass data between the Slaves and Master using \texttt{SPI.transfer()}. When communication is finished, terminate communications using \texttt{SPI.endTransaction()}.
  \end{document}
