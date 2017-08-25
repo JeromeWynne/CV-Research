@@ -1,9 +1,10 @@
 from cnn_utils import augment_image
 from scipy.misc import imread
+from shutil import rmtree
 import tensorflow as tf
 from glob import glob
+from os import mkdir
 import numpy as np
-
 
 """
     Before running this script, make sure that:
@@ -16,6 +17,7 @@ import numpy as np
 """ Configuration """
 TRAINING_EPOCHS = 10
 MINIBATCH_SIZE  = 32
+INITIAL_LEARNING_RATE = 0.01
 MODEL_ID        = "001_SegmentationExample"
 DATA_DIR        = './data/pv_panels/'
 import segmentation_model_001_example as segmentation_model
@@ -55,12 +57,12 @@ with graph.as_default():
     with tf.name_scope('Import'):
         training_dataset = tf.contrib.data.Dataset.from_tensor_slices(
                                     ( data['training_images'][:, :, :, np.newaxis].astype(np.float32),
-                                      data['training_masks'][:, :, :, np.newaxis].astype(np.float32) )
+                                      data['training_masks'][:, :, :, np.newaxis].astype(np.float32)/255. )
                                     )
 
         validation_dataset = tf.contrib.data.Dataset.from_tensor_slices(
                                     ( data['validation_images'][:, :, :, np.newaxis].astype(np.float32),
-                                      data['validation_masks'][:, :, :, np.newaxis].astype(np.float32) )
+                                      data['validation_masks'][:, :, :, np.newaxis].astype(np.float32)/255. )
                                     )
         
     """ Graph - Preprocessing """
@@ -85,15 +87,17 @@ with graph.as_default():
     """ Graph - Predictions and Optimization """
     with tf.name_scope('Training'):
         training_images, training_masks = training_iterator.get_next()
-        training_loss, training_predictions, training_iou = segmenation_model.graph(variables, training_images,
-                                                                                    training_masks, mode = 'training')
+        training_loss, training_predictions, training_iou = segmentation_model.graph(variables, training_images,
+                                                                                     training_masks, mode = 'training')
         
         training_summary = tf.summary.merge([
                                 tf.summary.scalar('MeanCrossEntropy', training_loss),
                                 tf.summary.scalar('MeanIoU',          training_iou),
-                                tf.summary.image( 'Predictions',      training_predictions, max_outputs = 10),
-                                tf.summary.image( 'Queries',          training_images,      max_outpus  = 10),
-                                tf.summary.image( 'GroundTruth',      training_masks,       max_outputs = 10)
+                                tf.summary.image( 'Predictions',      training_predictions, max_outputs = 1),
+                                tf.summary.image( 'Queries',          training_images,      max_outputs = 1),
+                                tf.summary.image( 'GroundTruth',      
+                                                  tf.slice(training_masks, begin = [0, 0, 0, 0],size = [-1, -1, -1, 1]),
+                                                  max_outputs = 1)
                              ])
         
         with tf.name_scope('Optimization'):
@@ -109,8 +113,10 @@ with graph.as_default():
                                 tf.summary.scalar('MeanCrossEntropy', validation_loss),
                                 tf.summary.scalar('MeanIoU',          validation_iou),
                                 tf.summary.image( 'Predictions',      validation_predictions, max_outputs = 100),
-                                tf.summary.image( 'Queries',          validation_images,      max_outpus  = 100),
-                                tf.summary.image( 'GroundTruth',      validation_masks,       max_outputs = 100)
+                                tf.summary.image( 'Queries',          validation_images,      max_outputs = 100),
+                                tf.summary.image( 'GroundTruth',
+                                                 tf.slice(validation_masks, begin = [0, 0, 0, 0],size = [-1, -1, -1, 1]),
+                                                 max_outputs = 100)
                              ])
     
     saver = tf.train.Saver()
@@ -130,16 +136,28 @@ with graph.as_default():
 """
 print('Graph defined.\nInitializing session...')
 with tf.Session(graph = graph) as session:
-    training_writer   = tf.summary.FileWriter('./Results/' + MODEL_ID + '/training', session.graph)
-    validation_writer = tf.summary.FileWriter('./Results/' + MODEL_ID + '/validation', session.graph)
+    try:
+        mkdir('./results/' + MODEL_ID)
+        mkdir('./results/' + MODEL_ID + '/training')
+        mkdir('./results/' + MODEL_ID + '/validation')
+        
+    except OSError:
+        rmtree('./results/' + MODEL_ID)
+        mkdir('./results/'  + MODEL_ID)
+        mkdir('./results/' + MODEL_ID + '/training')
+        mkdir('./results/' + MODEL_ID + '/validation')
     
-    session.run([tf.global_variables_initializer(), training_iterator, validation_iterator])
+    training_writer   = tf.summary.FileWriter('./results/' + MODEL_ID + '/training', session.graph)
+    validation_writer = tf.summary.FileWriter('./results/' + MODEL_ID + '/validation', session.graph)
+    
+    session.run([tf.global_variables_initializer(),
+                 training_iterator.initializer, validation_iterator.initializer])
     print('Session initialized. \nTraining for {} epochs.'.format(TRAINING_EPOCHS))
     
     while True:
         try:
             _, step_summary = session.run([optimize, training_summary])
-            step_number     = tf.global_step(session, training_step)
+            step_number     = tf.train.global_step(session, training_step)
             training_writer.add_summary(step_summary, step_number)
             
         except tf.errors.OutOfRangeError: # When we reach the end of the training dataset, test the model
@@ -149,5 +167,5 @@ with tf.Session(graph = graph) as session:
             
     training_writer.close()
     validation_writer.close()
-    saver.save(session, './SavedModels/' + MODEL_ID)
+    saver.save(session, './saved_models/' + MODEL_ID)
     print('\n Experiment complete.')

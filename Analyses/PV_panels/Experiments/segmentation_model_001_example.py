@@ -8,9 +8,9 @@ def variables():
     
     # TOMORROW: WE NEED TO CHANGE THE WAY BATCHNORMALIZEDCONVLAYER IS CREATED
     
-    v = { 'F0_0' : cnn_utils.BatchNormalizedConvLayer(map_size = 1, input_channels = 1, output_channels = 8),
-          'F1_0' : cnn_utils.BatchNormalizedConvLayer(map_size = 3, input_channels = 8, output_channels = 16),
-          'O2_0' : cnn_utils.BatchNormalizedConvLayer(map_size = 1, input_channels = 16, output_channels = 2, activate = False)
+    v = { 'F0_0' : cnn_utils.BatchNormalizedConvolutionalLayer(map_size = 1, in_channels = 1,  out_channels = 8),
+          'F1_0' : cnn_utils.BatchNormalizedConvolutionalLayer(map_size = 3, in_channels = 8,  out_channels = 16),
+          'O2_0' : cnn_utils.BatchNormalizedConvolutionalLayer(map_size = 1, in_channels = 16, out_channels = 2, activate = False)
         }
     return v
     
