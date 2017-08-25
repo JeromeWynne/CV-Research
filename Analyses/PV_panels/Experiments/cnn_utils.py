@@ -4,8 +4,8 @@
     This package provides objects for building convolutional neural networks using TensorFlow.
     
     Classes:
-        BatchNormalizedConvLayer
-        InceptionLayer
+        BatchNormalizedConvolutionalLayer
+        InceptionConvolutionalLayer
         
     Methods:
         flatten_ohe_tensors
@@ -14,10 +14,41 @@
 
 from numpy.random import randint
 import tensorflow as tf
-            
-class BatchNormalizedConvLayer(object):
+
+class ConvolutionalLayer(object):
+    """
+        LAYER DESCRIPTION
+    """
     def __init__(self, map_size, in_channels, out_channels,
-                 activate=True, padding = 'SAME', residual_layer = False):
+                 activate=True, padding = 'SAME', stride = [1, 1, 1, 1], residual_layer = False):
+        if type(map_size) != list: map_size = [map_size, map_size]
+        self.filters    = tf.Variable(tf.truncated_normal(
+                                        shape = [map_size[0], map_size[1], in_channels, out_channels],
+                                        stddev = 0.01))
+        
+        self.biases     = tf.Variable(tf.zeros(shape = [out_channels]))
+        self.activate   = activate
+        self.padding    = padding
+        self.stride     = stride
+        self.residual   = residual_layer
+
+    def apply(self, mode, input_data):
+        
+        self.conv        = tf.nn.conv2d(input_data, self.filters, strides = self.stride,
+                                        padding = self.padding, use_cudnn_on_gpu = True)
+        if self.activate:
+            if self.residual: return tf.nn.relu(self.norm_conv + self.biases) + data_in
+            else:             return tf.nn.relu(self.norm_conv + self.biases)
+        else:
+            if self.residual: return self.norm_conv + self.biases + data_in
+            else:             return self.norm_conv + self.biases
+            
+class BatchNormalizedConvolutionalLayer(object):
+    """
+        LAYER DESCRIPTION
+    """
+    def __init__(self, map_size, in_channels, out_channels,
+                 activate=True, padding = 'SAME', stride = [1, 1, 1, 1], residual_layer = False):
         if type(map_size) != list: map_size = [map_size, map_size]
         self.filters    = tf.Variable(tf.truncated_normal(
                                         shape = [map_size[0], map_size[1], in_channels, out_channels],
@@ -29,12 +60,13 @@ class BatchNormalizedConvLayer(object):
         self.decay      = 0.999
         self.activate   = activate
         self.padding    = padding
+        self.stride    = stride
         self.residual   = residual_layer
 
-    def apply(self, mode, data_in):
+    def apply(self, mode, input_data):
         
-        self.conv        = tf.nn.conv2d(data_in, self.filters, strides = [1, 1, 1, 1],
-                                       padding = self.padding, use_cudnn_on_gpu = True)
+        self.conv        = tf.nn.conv2d(input_data, self.filters, strides = self.stride,
+                                        padding = self.padding, use_cudnn_on_gpu = True)
         mu, var          = tf.nn.moments(self.conv, axes = [0, 1, 2], keep_dims = False)
         
         self.update_mean = tf.assign(self.input_mean, self.decay*(self.input_mean)
@@ -42,12 +74,12 @@ class BatchNormalizedConvLayer(object):
         self.update_var  = tf.assign(self.input_var,  self.decay*(self.input_var)
                                                       + (1 - self.decay)*var)
         
-        if mode == 'train':
+        if mode == 'training':
             with tf.control_dependencies([self.update_mean, self.update_var]):
                 self.norm_conv  = tf.nn.batch_normalization(self.conv, mean = mu,
                                                             variance = var, offset = None,
                                                             scale = None, variance_epsilon = 1e-5)
-        if mode == 'test':
+        if mode == 'validation':
                 self.norm_conv  = tf.nn.batch_normalization(self.conv, mean = mu,
                                                 variance = var, offset = None,
                                                 scale = None, variance_epsilon = 1e-5)
@@ -60,7 +92,7 @@ class BatchNormalizedConvLayer(object):
             else:             return self.norm_conv + self.biases
             
             
-class InceptionLayer:
+class InceptionConvolutionalLayer:
     """
         Returns a batch-normalized, residual Inception layer, the set of mappings F = {1x1 -> 3x3, 1x1 -> 5x5, 1x1}
         
@@ -139,34 +171,48 @@ def get_loss_predictions_iou(logits, masks):
         Returns scalar mean cross-entropy, scalar mean intersection-over-union (IoU), and image-shaped predictions.
     """
     
-    flat_logits, flat_masks = cnn_utils.flatten_ohe_tensors([logits, masks])
-    loss                    = tf.nn.softmax_cross_entropy_with_logits(labels = flat_masks,
-                                                                      logits = flat_logits)
+    flat_logits, flat_masks = flatten_ohe_tensors([logits, masks])
+    loss                    = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(labels = flat_masks,
+                                                                                     logits = flat_logits))
     predictions = tf.slice(tf.nn.softmax(logits, dim = -1),
                            begin = [0, 0, 0, 0], size = [-1, -1, -1, 1])
-    labels      = tf.greater(tf.slice(masks, dim = -1,
+    labels      = tf.greater(tf.slice(masks,
                                       begin = [0, 0, 0, 0], size = [-1, -1, -1, 1]),
                              0.5) # Pixel class labels (in a stack of image-shaped matrices)
-    intersection = tf.reduce_sum(tf.logical_and(tf.greater(predictions, 0.5), labels),
+    intersection = tf.reduce_sum(tf.cast(tf.logical_and(tf.greater(predictions, 0.5), labels), tf.float32),
                                  axis = [1, 2, 3])
-    union        = tf.reduce_sum(tf.logical_or(tf.greater(predictions, 0.5), labels),
+    union        = tf.reduce_sum(tf.cast(tf.logical_or(tf.greater(predictions, 0.5), labels), tf.float32),
                                  axis = [1, 2, 3])
-    IoU          = tf.where(tf.less(union, 1e-7), tf.zeros_like(union), # Only calculate IoU for images containing cracks
-                                                  tf.divide(intersection, union))
-    meanIoU      = tf.divide(tf.reduce_sum(IoU), tf.count_nonzero(IoU))
+    IoU          = tf.where(tf.greater(tf.reduce_sum(tf.cast(labels, tf.float32), axis = [1, 2, 3]), 1.),
+                            tf.divide(intersection, union),
+                            tf.zeros_like(union) ) # Only calculate IoU for images containing cracks
+    meanIoU      = tf.divide(tf.reduce_sum(IoU), tf.cast(tf.count_nonzero(IoU), tf.float32) + 1e-3) # Returns zero if no cracks in batch
                             
     return loss, predictions, meanIoU
-                            
+
+def get_loss_predictions_accuracy(logits, labels):
+    """
+        Accepts matrix-shaped logits and labels.
+    """
+    
+    loss  = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(labels = labels,
+                                                                   logits = logits))
+    predictions = tf.nn.softmax(logits, dim = -1) # NEED TO RESHAPE OUTPUT OF DETECTION MODEL TO A MATRIX
+    accuracy    = tf.metrics.accuracy(labels = tf.slice(labels, begin = [0, 0], size = [-1, 1]),
+                                      predictions = tf.cast(tf.greater(tf.slice(predictions, begin = [0, 0], size = [-1, 1]),
+                                                                       0.5), tf.float32))
+    # ROC curve?
+    return loss, predictions, accuracy
+    
 def augment_image(image_tensor, mask_tensor, mode):
     """
-                        image_tensor is [k, k, 1]
-                        mask_tensor is  [k, k, 1]
+                   image_tensor is [k, k, 1]
+                   mask_tensor is  [k, k, 1]
 
-                        Returns (image_tensor, mask_tensor) according to training/validation transformations.
-                        mask_tensor is one-hot encoded.
-             """
+                   Returns (image_tensor, mask_tensor) according to training/validation transformations.
+                   mask_tensor is one-hot encoded.
+    """
     image_tensor = tf.image.per_image_standardization(image_tensor) # mean zero, unit s.d.
-    mask_tensor  = mask_tensor/255 # {0., 1.}
 
     if mode == 'training':
         image_tensor = tf.image.random_flip_left_right(image_tensor)
@@ -175,5 +221,5 @@ def augment_image(image_tensor, mask_tensor, mode):
         if randint(0, 2):
             image_tensor = tf.image.transpose_image(image_tensor)
 
-    mask_tensor = tf.stack([mask_tensor, 1 - mask_tensor], axis = -1)
+    mask_tensor = tf.concat([mask_tensor, 1 - mask_tensor], axis = -1)
     return image_tensor, mask_tensor
