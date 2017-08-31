@@ -14,6 +14,7 @@
 
 from numpy.random import randint
 import tensorflow as tf
+import numpy as np
 
 class ConvolutionalLayer(object):
     """
@@ -37,10 +38,10 @@ class ConvolutionalLayer(object):
         self.conv        = tf.nn.conv2d(input_data, self.filters, strides = self.stride,
                                         padding = self.padding, use_cudnn_on_gpu = True)
         if self.activate:
-            if self.residual: return tf.nn.relu(self.norm_conv + self.biases) + data_in
+            if self.residual: return tf.nn.relu(self.norm_conv + self.biases) + input_data
             else:             return tf.nn.relu(self.norm_conv + self.biases)
         else:
-            if self.residual: return self.norm_conv + self.biases + data_in
+            if self.residual: return self.norm_conv + self.biases + input_data
             else:             return self.norm_conv + self.biases
             
 class BatchNormalizedConvolutionalLayer(object):
@@ -85,10 +86,10 @@ class BatchNormalizedConvolutionalLayer(object):
                                                 scale = None, variance_epsilon = 1e-5)
             
         if self.activate:
-            if self.residual: return tf.nn.relu(self.norm_conv + self.biases) + data_in
+            if self.residual: return tf.nn.relu(self.norm_conv + self.biases) + input_data
             else:             return tf.nn.relu(self.norm_conv + self.biases)
         else:
-            if self.residual: return self.norm_conv + self.biases + data_in
+            if self.residual: return self.norm_conv + self.biases + input_data
             else:             return self.norm_conv + self.biases
             
             
@@ -136,17 +137,17 @@ class InceptionConvolutionalLayer:
                                                in_channels  = self.bottleneck_channels,
                                                out_channels = self.n_5x5_out)
         
-    def apply(self, mode, data_in):
-        F1x1_out   = self.F1x1.apply(mode, data_in)
-        B1x1_3_out = self.B1x1_3.apply(mode, data_in)
-        B1x1_5_out = self.B1x1_5.apply(mode, data_in)
+    def apply(self, mode, input_data):
+        F1x1_out   = self.F1x1.apply(mode, input_data)
+        B1x1_3_out = self.B1x1_3.apply(mode, input_data)
+        B1x1_5_out = self.B1x1_5.apply(mode, input_data)
         F3x3_out   = self.F3x3.apply(mode, B1x1_3_out)
         F5x5_out   = self.F5x5.apply(mode, B1x1_5_out)
         
         overall_output = tf.concat([F1x1_out, F3x3_out, F5x5_out], axis = -1)
         
         if self.residual_layer:
-            return overall_output + data_in
+            return overall_output + input_data
         else:
             return overall_output
         
@@ -164,19 +165,19 @@ def flatten_ohe_tensors(tensors):
 
     return flattened_tensors
 
-def get_loss_predictions_iou(logits, masks):
+def get_loss_predictions_iou(logits, label_masks):
     """
         Accepts image-shaped logits and ground truth masks.
         
         Returns scalar mean cross-entropy, scalar mean intersection-over-union (IoU), and image-shaped predictions.
     """
     
-    flat_logits, flat_masks = flatten_ohe_tensors([logits, masks])
+    flat_logits, flat_masks = flatten_ohe_tensors([logits, label_masks])
     loss                    = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(labels = flat_masks,
                                                                                      logits = flat_logits))
     predictions = tf.slice(tf.nn.softmax(logits, dim = -1),
                            begin = [0, 0, 0, 0], size = [-1, -1, -1, 1])
-    labels      = tf.greater(tf.slice(masks,
+    labels      = tf.greater(tf.slice(label_masks,
                                       begin = [0, 0, 0, 0], size = [-1, -1, -1, 1]),
                              0.5) # Pixel class labels (in a stack of image-shaped matrices)
     intersection = tf.reduce_sum(tf.cast(tf.logical_and(tf.greater(predictions, 0.5), labels), tf.float32),
@@ -215,11 +216,47 @@ def augment_image(image_tensor, mask_tensor, mode):
     image_tensor = tf.image.per_image_standardization(image_tensor) # mean zero, unit s.d.
 
     if mode == 'training':
-        image_tensor = tf.image.random_flip_left_right(image_tensor)
-        image_tensor = tf.image.random_flip_up_down(image_tensor)
+        
         image_tensor = tf.image.random_contrast(image_tensor, lower = 0.5, upper = 1.5)
+        
+        if randint(0, 2): 
+            image_tensor = tf.image.flip_left_right(image_tensor)
+            mask_tensor  = tf.image.flip_left_right(mask_tensor)
+            
+        if randint(0, 2):
+            image_tensor = tf.image.flip_up_down(image_tensor)
+            mask_tensor = tf.image.flip_up_down(mask_tensor)
+        
         if randint(0, 2):
             image_tensor = tf.image.transpose_image(image_tensor)
 
     mask_tensor = tf.concat([mask_tensor, 1 - mask_tensor], axis = -1)
     return image_tensor, mask_tensor
+
+def balance_dataset(images, masks):
+    """
+        Images is a stack of one-channel images.
+        Masks is a stack of image-shaped masks.
+        
+        Masks and images can be either floats or ints.
+        
+        Assumes that the positive class is under-represented.
+        
+        Returns an oversampled set of images and their associated masks - (images, masks).
+    """
+    
+    # We shuffle the dataset using indices since we need to shuffle both the images and the masks
+    image_labels           = np.sum(masks, axis = [1, 2])
+    positive_class_indices = np.array(np.nonzero(image_labels)).T
+    n_samples              = image_labels.shape[0] - 2*np.count_nonzero(image_labels) # Positive class deficiency
+    sampled_indices        = np.random.choice(positive_class_indices, size = n_samples, replace = True)
+    
+    images  = np.concatenate([images, images[sampled_indices, :, :]], axis = 0)
+    masks   = np.concatenate([masks, masks[sampled_indices, :, :]], axis = 0)
+    
+    # Shuffle the dataset before returning it
+    shuffle_indices = np.random.choice(range(images.shape[0]), size = images.shape[0], replace = False)
+    images = images[shuffle_indices, :, :]
+    masks  = masks[shuffle_indices, :, :]
+    
+    return images, masks
